@@ -83,50 +83,201 @@ Even though there are many variables in the dataframe, here is a quick descripti
 
 # Exploratory Data Analysis (EDA)
 
-In the [R4DS Exploratory Data Analysis chapter](http://r4ds.had.co.nz/exploratory-data-analysis.html){target="_blank"}, the authors state:
+##Raw Value Inspection
 
-> "Your goal during EDA is to develop an understanding of your data. The easiest way to do this is to use questions as tools to guide your investigation... EDA is fundamentally a creative process. And like most creative processes, the key to asking quality questions is to generate a large quantity of questions."
+There are 23,019 entries and 74 characteristics for each entry. 
 
-
-Conduct a thorough EDA. Recall that an EDA involves three things:
-
-* Looking at the raw values.
-    * `dplyr::glimpse()`
-    
 ```{r}
 glimpse(listings)
 ```
-* Computing summary statistics of the variables of interest, or finding NAs
-    * `mosaic::favstats()`
-    * `skimr::skim()`
-    
+##Summary Statistics & Finding Missing Entries
+
+Through skimming the data, we see that there are 23 character, 5 date, 9 logical, and 37 numeric variables. For certain variables like bathrooms and license, all the entries are missing. Therefore, before dropping off the missing values immediately, first we need to eliminate the variables that we do not think will be useful for our analysis. Then, we can drop the missing values for the variables of interest. Additionally, some of the important variables like price is stored as a character. So, we need to convert it into numeric variable before we start building our model (see data wrangling). 
+
+Computing the summary statistics for number of reviews, minimum/maximum nights, and availability of the property for the next 30 and 365 days, we learn about the distribution of values (min, max, Q1, Q3, median) as well as the basic explanatory statistics like mean, standard deviation, count and number of missing values. Since we base our analysis on a travel data, we should eliminate the properties that are available only for the long-term rent. When we check the explanatory statistics and the box plot for the minimum night for stay (see data wrangling), the maximum value is 730. This means, there is a property who is only available if the guest is going to stay for minimum 730 days. Therefore, we filter our dataframe according to travel conditions. 
+
+
+###Finding Missing Values & Variable Types
 ```{r}
 skimr::skim(listings)
+```
 
-#Changing characters to numeric variables
+###Summary Statistics for Certain Numeric Variables
+```{r}
+round(mosaic::favstats(unlist(listings ["number_of_reviews"])), digits=2)
+```
 
+```{r}
+round(mosaic::favstats(unlist(listings ["minimum_nights"])), digits = 2)
+```
+
+```{r}
+round(mosaic::favstats(unlist(listings ["maximum_nights"])), digits = 2)
+```
+
+```{r}
+round(mosaic::favstats(unlist(listings ["availability_30"])), digits = 2)
+```
+
+```{r}
+round(mosaic::favstats(unlist(listings ["availability_365"])), digits = 2)
+```
+
+```{r}
+round(mosaic::favstats(unlist(listings ["review_scores_rating"])), digits = 2)
+```
+
+##Data Wrangling
+
+###Changing the Types of Variables of Interest
+
+```{r}
+#Change the type of Price to Numeric
+listings <- listings %>% 
+  mutate(price = parse_number(price))
+
+#Change the type of Host Response Rate to Numeric
+listings$host_response_rate <- round((as.numeric(gsub('.{1}$', '', listings$host_response_rate)))/100, digits=2)
+
+#Change the type of Bathroom to Numeric
+listings$bathrooms_text <- as.numeric(sub("^(.{1}).*", "\\1",listings$bathrooms_text ) )
+listings <- listings %>% 
+  mutate(bathrooms=bathrooms_text ) #changed the name of bathroom_text to bathrooms
+
+listings %>% 
+  select(bathrooms)
+```
+
+###Filtering & Choosing Variables of Interest & Dropping Missing Values
+
+```{r}
+#Box plot for Minimum Nights & Filtering for Travel Conditions
+
+ggplot(listings, aes(y= minimum_nights)) +
+  geom_boxplot()+
+  theme_bw() +
+  labs(title= "Box Plot for Minimum Nights",
+       y="Minimum Nights") 
+
+#Most common values for minimum nights is 1. As discussed above, there are properties that are only available for the long-term rent. For example, there is a property with minimum night stay of 730 days. Since we consider travel conditions, we should eliminate those by filtering minimum_nights <= 4 below.
+ 
+```
+
+``` {r}
+#Defining 5 Categories for Property Type
+
+listings %>% 
+  group_by(property_type) %>% 
+  summarise(count= count (property_type)) %>% 
+  arrange(desc(count)) %>% 
+  mutate(percentage= count/(sum(count)))
+
+
+listings <- listings %>%
+  mutate(prop_type_simplified = case_when(
+    property_type %in% c("Entire rental unit","Entire serviced apartment", "Entire condominium (condo)","Entire residential home") ~ property_type, 
+    TRUE ~ "Other"
+  ))
+
+listings %>%
+  count(property_type, prop_type_simplified) %>%
+  arrange(desc(n))  
+```
+
+```{r}
+#Creating a new dataframe with variables of interest
+new_listings<- listings %>% 
+  select(price, 
+         property_type, 
+         room_type, 
+         neighbourhood_cleansed,
+         host_response_rate, 
+         accommodates, 
+         bathrooms, 
+         bedrooms, 
+         beds, 
+         minimum_nights, 
+         maximum_nights, 
+         availability_30,
+         availability_60,
+         availability_90,
+         availability_365,
+         number_of_reviews, 
+         review_scores_rating, 
+         review_scores_accuracy, 
+         review_scores_cleanliness, 
+         review_scores_checkin, 
+         review_scores_communication, 
+         review_scores_location, 
+         review_scores_value, 
+         instant_bookable, 
+         reviews_per_month, 
+         has_availability, 
+         host_identity_verified, 
+         host_has_profile_pic,
+         host_is_superhost) %>%
+  filter(accommodates >1,minimum_nights <= 4)
+
+#Since we are interested in properties for 2 people, we need to eliminate the properties for only one person
+#Our analysis is based on the travel data, so we filter the entries with minimum_nights <= 4
+
+#Dropping missing values of the new dataframe
+new_listings <-drop_na(new_listings)
+head(new_listings)
 
 ```
-* Creating informative visualizations.
-    * `ggplot2::ggplot()`
-        * `geom_histogram()` or `geom_density()` for numeric continuous variables
-        * `geom_bar()` or `geom_col()` for categorical variables
-    * `GGally::ggpairs()` for scaterrlot/correlation matrix
-        * Note that you can add transparency to points/density plots in the `aes` call, for example: `aes(colour = gender, alpha = 0.4)`
+
+##Informative Visualization
 
 ```{r fig.width = 12, fig.height = 12}
 
-#Histogram for Ratings
-ggplot(listings, aes(x= review_scores_rating)) +
-  geom_histogram(alpha=0.2) +   
+#Density Plot for Price
+ggplot(new_listings, aes(x= price)) +
+  geom_density(alpha=0.2) +   
   theme_bw() +                
   labs (
-    title = "Histogram for Ratings",
-    x= "Ratings",
-    y="Number of Ratings")
+    title = "Density Plot for Price",
+    y     = "Density",
+    x= "Price")
+
+#Density Plot for Minimum Nights 
+ggplot(new_listings, aes(x= minimum_nights)) +
+  geom_density(alpha=0.2) +   
+  theme_bw() +                
+  labs (
+    title = "Density Plot for Minimum Nights",
+    x= "Minimum Nights",
+    y= "Density")
+
+#Density Plot for Maximum Nights 
+ggplot(new_listings, aes(x= maximum_nights)) +
+  geom_density(alpha=0.2) +   
+  theme_bw() +                
+  labs (
+    title = "Density Plot for Maximum Nights",
+    x= "Maximum Nights",
+    y= "Density")
+
+#Density Plot for Availability within next 30 days 
+ggplot(new_listings, aes(x= availability_30)) +
+  geom_density(alpha=0.2) +   
+  theme_bw() +                
+  labs (
+    title = "Density Plot for Availability Within Next 30 Days",
+    x= "Availability within next 30 days",
+    y= "Density")
+
+#Density Plot for Availability within next 365 days 
+ggplot(new_listings, aes(x= availability_365)) +
+  geom_density(alpha=0.2) +   
+  theme_bw() +                
+  labs (
+    title = "Density Plot for Availability Within Next 365 Days",
+    x= "Availability within next 365 days",
+    y= "Density")
 
 #Density plot for Number of Reviews 
-ggplot(listings, aes(x= number_of_reviews)) +
+ggplot(new_listings, aes(x= number_of_reviews)) +
   geom_density(alpha=0.2) +   
   theme_bw() +                
   labs (
@@ -134,27 +285,17 @@ ggplot(listings, aes(x= number_of_reviews)) +
     y     = "Density",
     x="Number of Reviews")
 
-#Histogram for Minimum Nights 
-ggplot(listings, aes(x= minimum_nights)) +
-  geom_histogram(alpha=0.2) +   
+#Density Plot for Review Scores Rating
+ggplot(new_listings, aes(x= review_scores_rating)) +
+  geom_density(alpha=0.2) +   
   theme_bw() +                
   labs (
-    title = "Histogram for Minimum Nights to Stay",
-    x= "Minimum Nights",
-    y= "Number of Minimum Nights to Stay")
-
-#Histogram for Maximum Nights 
-ggplot(listings, aes(x= maximum_nights)) +
-  geom_histogram(alpha=0.2) +   
-  theme_bw() +                
-  labs (
-    title = "Histogram for Maximum Nights to Stay",
-    x= "Maximum Nights",
-    y= "Number of Maximum Nights to Stay")
-
+    title = "Density Plot for Review Scores Rating",
+    y     = "Density",
+    x= "Review Scores Rating")
 
 #Bar chart for Property Type
-ggplot(listings, aes(y= property_type )) +
+ggplot(new_listings, aes(y= property_type )) +
   geom_bar(alpha=0.2) +   
   theme_bw() +                
   labs (
@@ -163,14 +304,44 @@ ggplot(listings, aes(y= property_type )) +
     y="Property Type")
 
 #Bar chart for Room Type
-ggplot(listings, aes(y= room_type )) +
+ggplot(new_listings, aes(y= room_type )) +
   geom_bar(alpha=0.2) +   
   theme_bw() +                
   labs (
-    title = "Room Type")
+    title = "Room Type",
+    x= "Number of Properties",
+    y= "Room Type")
+
+#Bar chart for Neighborhood
+ggplot(new_listings, aes(y= neighbourhood_cleansed )) +
+  geom_bar(alpha=0.2) +   
+  theme_bw() +                
+  labs (
+    title = "Neighborhood",
+    x= "Number of Properties",
+    y= "Neighborhood")
+
+#Bar chart for Number of Accommodates
+ggplot(new_listings, aes(x= accommodates )) +
+  geom_bar(alpha=0.2) +   
+  theme_bw() +                
+  labs (
+    title = "Number of Accommodates in a Property",
+    x= "Accomodates",
+    y= "Number of Properties")
+
+
+#Bar chart for Instant Bookable
+ggplot(new_listings, aes(x= instant_bookable)) +
+  geom_bar(alpha=0.2) +   
+  theme_bw() +                
+  labs (
+    title = "Instant Bookability",
+    x= "Status of Instant Bookability",
+    y= "Number of Properties")
 
 #Bar chart for Host Identity Verification
-ggplot(listings, aes(x= host_identity_verified  )) +
+ggplot(new_listings, aes(x= host_identity_verified  )) +
   geom_bar(alpha=0.2) +   
   theme_bw() +                
   labs (
@@ -179,114 +350,29 @@ ggplot(listings, aes(x= host_identity_verified  )) +
     x= "Identity Verification Status")
 
 #Bar chart for Availability
-ggplot(listings, aes(x= has_availability  )) +
+ggplot(new_listings, aes(x= has_availability)) +
   geom_bar(alpha=0.2) +   
   theme_bw() +                
   labs (
     title = "Availability Status",
-    y= "Number of Properties Available",
+    y= "Number of Properties",
     x= "Availability Status")
 
-
-unique(listings["neighbourhood"])
-
-
 ```
 
-You may wish to have a level 1 header (`#`) for your EDA, then use level 2 sub-headers (`##`) to make sure you cover all three EDA bases. **At a minimum** you should address these questions:
-
-*How many variables/columns? How many rows/observations?*
-
-Original data -> 23019 rows, 74 columns, 23 characters, 5 date, 9 logical variables, 37 numerical variables
-Updated data (columns of interest are selected) -> 10824 rows, 25 columns, 2 logical variables, 23 numeric variables
-
-*Which variables are numbers?*
-
-
-- Which are categorical or *factor* variables (numeric or character variables with variables that have a fixed and known set of possible values?
 - What are the correlations between variables? Does each scatterplot support a linear relationship between variables? Do any of the correlations appear to be conditional on the value of a categorical variable?
 
-At this stage, you may also find you want to use `filter`, `mutate`, `arrange`, `select`, or `count`. Let your questions lead you! 
 
-> In all cases, please think about the message your plot is conveying. Don’t just say "This is my X-axis, this is my Y-axis", but rather what’s the **so what** of the plot. Tell some sort of story and speculate about the differences in the patterns in no more than a paragraph.
+```{r fig.width = 12, fig.height = 12}
+correlation_data <- new_listings %>% 
+  dplyr::select(where(is.numeric)) %>% 
+  ggpairs()
 
-## Data wrangling
-
-Once you load the data, it's always a good idea to use `glimpse` to see what kind of variables you have and what data type (`chr`, `num`, `logical`, `date`, etc) they are. 
-
-Notice that some of the price data (`price`) is given as a character string, e.g., "$176.00"
-
-Since `price` is a quantitative variable, we need to make sure it is stored as numeric data `num` in the dataframe. To do so, we will first use `readr::parse_number()` which drops any non-numeric characters before or after the first number
-
-```{r}
-#Change the type of Price to Numeric
-listings <- listings %>% 
-  mutate(price = parse_number(price))
-typeof(listings$price)
-
-#Density plot for Price
-ggplot(listings, aes(x= price)) +
-  geom_density(alpha=0.2) +   
-  theme_bw() +                
-  labs (
-    title = "Density Plot for Price",
-    y     = "Density",
-    x= "Price")
-
-#listings$price <- as.numeric(gsub('\\$|,', '', listings$price))
-
-#Change the type of Host Response Time to Numeric
-listings$host_response_rate <- as.numeric(gsub('.{1}$', '', listings$host_response_rate))
-
-#Histogram for Host Response Rate
-ggplot(listings, aes(x= host_response_rate)) +
-  geom_histogram(alpha=0.2) +   
-  theme_bw() +                
-  labs (
-    title = "Histogram for Host Response Rate",
-    x= "Host Response Rate",
-    y= "Number of Responses")
-
-#Change the type of Bathroom to Numeric
-listings$bathrooms_text <- as.numeric(gsub('.{4}$', '', listings$bathrooms_text))
+correlation_data
 
 ```
-  
-Use `typeof(listing$price)` to confirm that `price` is now stored as a number.
 
-
-## Propery types
-
-
-Next, we look at the variable `property_type`. We can use the `count` function to determine how many categories there are their frequency. What are the top 4 most common property types? What proportion of the total listings do they make up? 
-
-Since the vast majority of the observations in the data are one of the top four or five property types, we would like to create a simplified version of `property_type` variable that has 5 categories: the top four categories and `Other`. Fill in the code below to create `prop_type_simplified`.
-
-``` {r}
-listings <- listings %>%
-  mutate(prop_type_simplified = case_when(
-    property_type %in% c("______","______", "______","______") ~ property_type, 
-    TRUE ~ "Other"
-  ))
-  
-```
-Use the code below to check that `prop_type_simplified` was correctly made.
-
-``` {r}
-listings %>%
-  count(property_type, prop_type_simplified) %>%
-  arrange(desc(n))        
-```        
-
-Airbnb is most commonly used for travel purposes, i.e., as an alternative to traditional hotels. We only want to include  listings in our regression analysis that are intended for travel purposes:
-
-- What are the  most common values for the variable `minimum_nights`? 
-- Is ther any value among the common values that stands out? 
-- What is the likely intended purpose for Airbnb listings with this seemingly unusual value for `minimum_nights`?
-
-Filter the airbnb data so that it only includes observations with `minimum_nights <= 4`
-
-        
+    
 # Mapping 
 
 Visualisations of feature distributions and their relations are key to understanding a data set, and they can open up new lines of exploration. While we do not have time to go into all the wonderful geospatial visualisations one can do with R, you can use the following code to start with a map of your city, and overlay all AirBnB coordinates to get an overview of the spatial distribution of AirBnB rentals. For this visualisation we use the `leaflet` package, which includes a variety of tools for interactive maps, so you can easily zoom in-out, click on a point to get the actual AirBnB listing for that specific point, etc.
