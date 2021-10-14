@@ -92,7 +92,9 @@ glimpse(listings)
 ```
 ##Summary Statistics & Finding Missing Entries
 
-Through skimming the data, we see that there are 23 character, 5 date, 9 logical, and 37 numeric variables. For certain variables like bathrooms and license, all the entries are missing. Therefore, before dropping off the missing values immediately, first we need to eliminate the variables that we do not think will be useful for our analysis. Then, we can drop the missing values for the variables of interest. Additionally, some of the important variables like price is stored as a character. So, we need to convert it into numeric variable before we start building our model (see data wrangling). 
+Through skimming the data, we see that there are 23 character, 5 date, 9 logical, and 37 numeric variables. Numeric variables include but not limited to number of accommodates that a property can host, bedrooms, minimum & maximum nights for stay, review scores, and availability within upcoming days. Categoric variables include but not limited to property and room types, verification status of the host, number of bathrooms in a property, and neighborhood.  
+
+For certain variables like bathrooms and license, all the entries are missing. Therefore, before dropping off the missing values immediately, first we need to eliminate the variables that we do not think will be useful for our analysis. Then, we can drop the missing values for the variables of interest. Additionally, some of the important variables like price is stored as a character. So, we need to convert it into numeric variable before we start building our model (see data wrangling). 
 
 Computing the summary statistics for number of reviews, minimum/maximum nights, and availability of the property for the next 30 and 365 days, we learn about the distribution of values (min, max, Q1, Q3, median) as well as the basic explanatory statistics like mean, standard deviation, count and number of missing values. Since we base our analysis on a travel data, we should eliminate the properties that are available only for the long-term rent. When we check the explanatory statistics and the box plot for the minimum night for stay (see data wrangling), the maximum value is 730. This means, there is a property who is only available if the guest is going to stay for minimum 730 days. Therefore, we filter our dataframe according to travel conditions. 
 
@@ -182,13 +184,14 @@ listings <- listings %>%
 listings %>%
   count(property_type, prop_type_simplified) %>%
   arrange(desc(n))  
+
 ```
 
 ```{r}
 #Creating a new dataframe with variables of interest
 new_listings<- listings %>% 
   select(price, 
-         property_type, 
+         prop_type_simplified, 
          room_type, 
          neighbourhood_cleansed,
          host_response_rate, 
@@ -229,6 +232,8 @@ head(new_listings)
 
 ##Informative Visualization
 
+As we see from the graph, the distribution of price is positively skewed with most of the values <1,000 and some very large values like +100,000. Computing the explanatory statistics, we see that man price is 650.96 while the maximum price is 103,133.
+
 ```{r fig.width = 12, fig.height = 12}
 
 #Density Plot for Price
@@ -240,42 +245,76 @@ ggplot(new_listings, aes(x= price)) +
     y     = "Density",
     x= "Price")
 
-#Density Plot for Minimum Nights 
-ggplot(new_listings, aes(x= minimum_nights)) +
-  geom_density(alpha=0.2) +   
+ggplot(new_listings, aes(y= price)) +
+  geom_boxplot() +   
   theme_bw() +                
   labs (
-    title = "Density Plot for Minimum Nights",
-    x= "Minimum Nights",
-    y= "Density")
+    title = "Box Plot for Price",
+    y     = "Price")
 
-#Density Plot for Maximum Nights 
-ggplot(new_listings, aes(x= maximum_nights)) +
-  geom_density(alpha=0.2) +   
-  theme_bw() +                
-  labs (
-    title = "Density Plot for Maximum Nights",
-    x= "Maximum Nights",
-    y= "Density")
+round(mosaic::favstats(unlist(listings ["price"])), digits = 2)
 
-#Density Plot for Availability within next 30 days 
+```
+
+Plotting the histogram for availability within x= 30, 60, 90 and 365 days, we see that in each case, most of the properties are either not available or available +(x-5) days. Exceptionally, in the case of availability within the next 365, there is a seasonal pattern in every 100 days. So, some of the properties are available within next 100 days, 200 days, or +300 days. 
+
+```{r fig.width = 12, fig.height = 12}
+#Histogram for Availability within next 30 days 
 ggplot(new_listings, aes(x= availability_30)) +
-  geom_density(alpha=0.2) +   
+  geom_histogram(alpha=0.2) +   
   theme_bw() +                
   labs (
-    title = "Density Plot for Availability Within Next 30 Days",
+    title = "Histogram for Availability Within Next 30 Days",
     x= "Availability within next 30 days",
-    y= "Density")
-
-#Density Plot for Availability within next 365 days 
-ggplot(new_listings, aes(x= availability_365)) +
-  geom_density(alpha=0.2) +   
+    y= "Number of Properties")
+```
+```{r fig.width = 12, fig.height = 12}
+#Histogram for Availability within next 60 days 
+ggplot(new_listings, aes(x= availability_60)) +
+  geom_histogram(alpha=0.2) +   
   theme_bw() +                
   labs (
-    title = "Density Plot for Availability Within Next 365 Days",
+    title = "Histogram for Availability Within Next 60 Days",
+    x= "Availability within next 60 days",
+    y= "Number of Properties")
+```
+```{r fig.width = 12, fig.height = 12}
+#Histogram for Availability within next 90 days 
+ggplot(new_listings, aes(x= availability_90)) +
+  geom_histogram(alpha=0.2) +   
+  theme_bw() +                
+  labs (
+    title = "Histogram for Availability Within Next 90 Days",
+    x= "Availability within next 90 days",
+    y= "Number of Properties")
+```
+```{r fig.width = 12, fig.height = 12}
+#Histogram for Availability within next 365 days 
+ggplot(new_listings, aes(x= availability_365)) +
+  geom_histogram(alpha=0.2) +   
+  theme_bw() +                
+  labs (
+    title = "Histogram for Availability Within Next 365 Days",
     x= "Availability within next 365 days",
-    y= "Density")
+    y= "Number of Properties")
+```
+Since we filtered data based on travel conditions (minimum_nights<=4), we have 4 values for this variable; 1, 2, 3 and 4. Majority of the properties have a minimum 1-night stay. 
 
+```{r fig.width = 12, fig.height = 12}
+
+#Histogram for Minimum Nights 
+ggplot(new_listings, aes(x= minimum_nights)) +
+  geom_histogram(alpha=0.2) +   
+  theme_bw() +                
+  labs (
+    title = "Histogram for Minimum Nights",
+    x= "Minimum Nights",
+    y= "Number of Properties")
+```
+
+On average, guests make around 10 reviews per property. However, there are some properties with significant number of reviews (e.g., 606). Considering the density plot for number of reviews, data is positively skewed with majority of data points being around 0 to 100 reviews per property. 
+
+```{r fig.width = 12, fig.height = 12}
 #Density plot for Number of Reviews 
 ggplot(new_listings, aes(x= number_of_reviews)) +
   geom_density(alpha=0.2) +   
@@ -285,6 +324,13 @@ ggplot(new_listings, aes(x= number_of_reviews)) +
     y     = "Density",
     x="Number of Reviews")
 
+round(mosaic::favstats(unlist(listings ["number_of_reviews"])), digits = 2)
+```
+Majority of the reviews are centered around 5 with a mean 4,46 and median 4,8. There are 11,983 entries for review scores rating but we have almost two times more listings. Therefore, we can assume that, guests provide rating when they are satisfied with the property/host/service, etc. If they think that the service is on average or below average, they do not provide as much as feedback as they do when they are satisfied. 
+
+We would expect higher concentration around rating=1 & 2, because people tend to give feedback when they are not satisfied with the service they get. Alternatively, there is not much dissatisfaction and guests are happy with the service. 
+
+```{r fig.width = 12, fig.height = 12}
 #Density Plot for Review Scores Rating
 ggplot(new_listings, aes(x= review_scores_rating)) +
   geom_density(alpha=0.2) +   
@@ -294,8 +340,32 @@ ggplot(new_listings, aes(x= review_scores_rating)) +
     y     = "Density",
     x= "Review Scores Rating")
 
+round(mosaic::favstats(unlist(listings ["review_scores_rating"])), digits = 2)
+```
+37% of properties listed accommodate 2 people. The percentage properties with +6 accommodates is very low approximately 6%. 
+
+```{r fig.width = 12, fig.height = 12}
+#Histogram for Number of Accommodates
+ggplot(new_listings, aes(x= accommodates )) +
+  geom_histogram(alpha=0.2) +   
+  theme_bw() +                
+  labs (
+    title = "Number of Accommodates in a Property",
+    x= "Accomodates",
+    y= "Number of Properties")
+
+new_listings %>% 
+  group_by(accommodates) %>% 
+  summarise(count=count(accommodates)) %>% 
+  mutate(percentage= count/sum(count) *100) %>% 
+  arrange(desc(percentage))
+
+```
+There are 5 property types (simplified version). Within those 5 units, "Entire Rental Unit" has the majority of the weight, 48,5% followed by "Other" 37,3%.
+
+```{r fig.width = 12, fig.height = 12}
 #Bar chart for Property Type
-ggplot(new_listings, aes(y= property_type )) +
+ggplot(new_listings, aes(y= prop_type_simplified )) +
   geom_bar(alpha=0.2) +   
   theme_bw() +                
   labs (
@@ -303,6 +373,14 @@ ggplot(new_listings, aes(y= property_type )) +
     x="Number of Properties",
     y="Property Type")
 
+new_listings %>% 
+  group_by(prop_type_simplified) %>% 
+  summarise(count=count(prop_type_simplified)) %>% 
+  mutate(percentage= count/sum(count) *100) %>% 
+  arrange(desc(percentage))
+```
+There are 4 types of rooms, "Entire home", "Private room", "Hotel room", and "Shared room". Approximately 70% of listings' room type is "Entire home".
+```{r fig.width = 12, fig.height = 12}
 #Bar chart for Room Type
 ggplot(new_listings, aes(y= room_type )) +
   geom_bar(alpha=0.2) +   
@@ -312,6 +390,15 @@ ggplot(new_listings, aes(y= room_type )) +
     x= "Number of Properties",
     y= "Room Type")
 
+new_listings %>% 
+  group_by(room_type) %>% 
+  summarise(count=count(room_type)) %>% 
+  mutate(percentage= count/sum(count) *100) %>% 
+  arrange(desc(percentage))
+```
+As expected, neighborhood is an important factor determining the price of the property. Majority of the properties are in Beyoglu & Fatih which is the most touristic region of Istanbul. 
+
+```{r fig.width = 12, fig.height = 12}
 #Bar chart for Neighborhood
 ggplot(new_listings, aes(y= neighbourhood_cleansed )) +
   geom_bar(alpha=0.2) +   
@@ -320,17 +407,10 @@ ggplot(new_listings, aes(y= neighbourhood_cleansed )) +
     title = "Neighborhood",
     x= "Number of Properties",
     y= "Neighborhood")
+```
+There are approximately 4000 instant bookable properties and 3000 not instantly bookable ones. 
 
-#Bar chart for Number of Accommodates
-ggplot(new_listings, aes(x= accommodates )) +
-  geom_bar(alpha=0.2) +   
-  theme_bw() +                
-  labs (
-    title = "Number of Accommodates in a Property",
-    x= "Accomodates",
-    y= "Number of Properties")
-
-
+```{r fig.width = 12, fig.height = 12}
 #Bar chart for Instant Bookable
 ggplot(new_listings, aes(x= instant_bookable)) +
   geom_bar(alpha=0.2) +   
@@ -340,6 +420,14 @@ ggplot(new_listings, aes(x= instant_bookable)) +
     x= "Status of Instant Bookability",
     y= "Number of Properties")
 
+new_listings %>% 
+  count(instant_bookable) 
+
+```
+
+Identity verification might be a significant factor in determining the price of a property. But, most of the properties', 83%, host is verified. 
+
+```{r fig.width = 12, fig.height = 12}
 #Bar chart for Host Identity Verification
 ggplot(new_listings, aes(x= host_identity_verified  )) +
   geom_bar(alpha=0.2) +   
@@ -349,21 +437,26 @@ ggplot(new_listings, aes(x= host_identity_verified  )) +
     y= "Number of Identifications",
     x= "Identity Verification Status")
 
-#Bar chart for Availability
-ggplot(new_listings, aes(x= has_availability)) +
-  geom_bar(alpha=0.2) +   
-  theme_bw() +                
-  labs (
-    title = "Availability Status",
-    y= "Number of Properties",
-    x= "Availability Status")
+new_listings %>% 
+  count(host_identity_verified) 
 
 ```
 
-- What are the correlations between variables? Does each scatterplot support a linear relationship between variables? Do any of the correlations appear to be conditional on the value of a categorical variable?
 
+Does each scatterplot support a linear relationship between variables? Do any of the correlations appear to be conditional on the value of a categorical variable?
 
-```{r fig.width = 12, fig.height = 12}
+##Correlations
+
+Computing the correlation between the numeric variables, we see that review scores are strongly positively correlated with each other. For example, the correlation between review_scores_accuracy and review_scores_rating is 0,875 and the correlation between review_scores_communication and review_scores_cleanliness is 0,833. To prevent collinearity, we shoudl not include all review scores in our regression models, but rathr just include review_scores_rating.
+
+Moreover, the correlation between the availability of 30, 60, 90, and 365 days is high, so similar exclusion to prevent collinearity holds for these variables. For example, the correlation between the availabilty within 60 and 30 days is 0,917 which is almost 1. 
+
+Interestingly, we see that the number of reviews has relatively low correlation with other numeric variables whşch is around 10% (except number of reviews per month).
+
+The strongest correlation with price is number of accommodates which is 0,244.
+
+```{r fig.width = 20, fig.height = 20}
+
 correlation_data <- new_listings %>% 
   dplyr::select(where(is.numeric)) %>% 
   ggpairs()
