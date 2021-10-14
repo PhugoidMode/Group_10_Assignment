@@ -400,14 +400,51 @@ For the target variable $Y$, we will use the cost for two people to stay at an A
 
 Create a new variable called `price_4_nights` that uses `price`, and `accomodates` to calculate the total cost for two people to stay at the Airbnb property for 4 nights. This is the variable $Y$ we want to explain.
 
+
+
+```{r}
+four_nights_for_two_listings <- new_listings %>%
+  filter(minimum_nights <= 4 & maximum_nights >= 4 & accommodates >= 2) %>% 
+  mutate(price_4_nights = price * 4) # Total cost of staying four nights 
+
+
+
+skim(four_nights_for_two_listings)
+```
+
 Use histograms or density plots to examine the distributions of `price_4_nights` and `log(price_4_nights)`. Which variable should you use for the regression model? Why?
+```{r}
+#Density Plot for price_4_nights
+ggplot(four_nights_for_two_listings, aes(x= price_4_nights)) +
+  geom_density(alpha=0.2) +   
+  theme_bw() +                
+  labs (
+    title = "Density Plot for price_4_nights",
+    y     = "Density",
+    x= "price_4_nights")
+
+
+```
+
 
 Fit a regression model called `model1` with the following explanatory variables: `prop_type_simplified`, `number_of_reviews`, and `review_scores_rating`. 
+```{r}
+model1 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_scores_rating, data = four_nights_for_two_listings) #change prop_type_simplified into numerical 
+ 
+mosaic::msummary(model1)
+```
+
 
 - Interpret the coefficient `review_scores_rating` in terms of `price_4_nights`.
 - Interpret the coefficient of `prop_type_simplified` in terms of `price_4_nights`.
 
 We want to determine if `room_type` is a significant predictor of the cost for 4 nights, given everything else in the model. Fit a regression model called model2 that includes all of the explananatory variables in `model1` plus `room_type`. 
+```{r}
+model2 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_scores_rating, data = four_nights_for_two_listings + room_type)
+
+mosaic::msummary(model2)
+```
+
 
 
 
