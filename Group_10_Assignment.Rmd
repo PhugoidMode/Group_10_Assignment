@@ -511,6 +511,11 @@ model2 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_
 mosaic::msummary(model2)
 ```
 
+```{r}
+model3 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_scores_rating + instant_bookable + neighbourhood_cleansed, data = four_nights_for_two_listings)
+
+mosaic::msummary(model2)
+```
 
 ## Further variables/questions to explore on our own
 
@@ -538,13 +543,9 @@ autoplot(model1) +
   theme_bw()
 ```
 
-<<<<<<< HEAD
-=======
 
 1. As you start building models with more explanatory variables, make sure you use `car::vif(model_x)`` to calculate the **Variance Inflation Factor (VIF)** for your predictors and determine whether you have colinear variables. A general guideline is that a VIF larger than 5 or 10 is large, and your model may suffer from collinearity. Remove the variable in question and run your model again without it.
->>>>>>> ae5ea68782d942fea9e8d5d1ff6626a77b4fcc5b
 
-1. As you start building models with more explanatory variables, make sure you use `car::vif(model_x)`` to calculate the **Variance Inflation Factor (VIF)** for your predictors and determine whether you have colinear variables. A general guideline is that a VIF larger than 5 or 10 is large, and your model may suffer from collinearity. Remove the variable in question and run your model again without it.
 ```{r}
 # Check whether any model has a VIF (Variance Inflation Factor) greater than 5
 car::vif(model1)
