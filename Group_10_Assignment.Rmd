@@ -42,19 +42,6 @@ library(vroom)
 ```
 
 
-
-
-In your final group assignment you have to analyse data about Airbnb listings and fit a model to predict the total cost for two people staying 4 nights in an AirBnB in a city. You can download AirBnB data from [insideairbnb.com](http://insideairbnb.com/get-the-data.html){target="_blank"}; it was originally scraped from airbnb.com. 
-
-The following [Google sheet](https://docs.google.com/spreadsheets/d/1QrR-0PUGVWvDiVQL4LOk7w-xXwiDnM3dDtW6k15Hc7s/edit?usp=sharing) shows which cities you can use; please choose one of them and add your group name next to it, e.g., A7, B13. No city can have more than 2 groups per stream working on it; if this happens, I will allocate study groups to cities with the help of R's sampling.
-
-
-All of the listings are a GZ file, namely they are archive files compressed by the standard GNU zip (gzip) compression algorithm. You can download, save and extract the file if you wanted, but `vroom::vroom()` or `readr::read_csv()` can immediately read and extract this kind of a file. You should prefer `vroom()` as it is faster, but if vroom() is limited by a firewall, please use `read_csv()` instead.
-
-
-`vroom` will download the *.gz zipped file, unzip, and provide you with the dataframe. 
-
-
 ```{r load_data, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE}
 
 # use cache=TRUE so you dont donwload the data everytime you knit
@@ -63,23 +50,6 @@ listings <- vroom("http://data.insideairbnb.com/turkey/marmara/istanbul/2021-09-
        clean_names()
 
 ```
-
-
-Even though there are many variables in the dataframe, here is a quick description of some of the variables collected, and you can find a [data dictionary here](https://docs.google.com/spreadsheets/d/1iWCNJcSutYqpULSQHlNyGInUvHg2BoUGoNRIGa6Szc4/edit#gid=982310896)
-
-- `price` = cost per night 
-- `property_type`: type of accommodation (House, Apartment, etc.)
-- `room_type`:
-
-  - Entire home/apt (guests have entire place to themselves)
-  - Private room (Guests have private room to sleep, all other rooms shared)
-  - Shared room (Guests sleep in room shared with others)
-
-- `number_of_reviews`: Total number of reviews for the listing
-- `review_scores_rating`: Average review score (0 - 100)
-- `longitude` , `latitude`: geographical coordinates to help us locate the listing
-- `neighbourhood*`: three variables on a few major neighbourhoods in each city 
-
 
 # Exploratory Data Analysis (EDA)
 
@@ -152,6 +122,8 @@ listings %>%
 
 ###Filtering & Choosing Variables of Interest & Dropping Missing Values
 
+Most common values for minimum nights is 1. As discussed above, there are properties that are only available for the long-term rent. For example, there is a property with minimum night stay of 730 days. Since we consider travel conditions, we should eliminate those by filtering minimum_nights <= 4 below.
+ 
 ```{r}
 #Box plot for Minimum Nights & Filtering for Travel Conditions
 
@@ -161,8 +133,7 @@ ggplot(listings, aes(y= minimum_nights)) +
   labs(title= "Box Plot for Minimum Nights",
        y="Minimum Nights") 
 
-#Most common values for minimum nights is 1. As discussed above, there are properties that are only available for the long-term rent. For example, there is a property with minimum night stay of 730 days. Since we consider travel conditions, we should eliminate those by filtering minimum_nights <= 4 below.
- 
+
 ```
 
 ``` {r}
@@ -171,13 +142,13 @@ ggplot(listings, aes(y= minimum_nights)) +
 listings %>% 
   group_by(property_type) %>% 
   summarise(count= count (property_type)) %>% 
-  arrange(desc(count)) %>% 
-  mutate(percentage= count/(sum(count)))
+  mutate(percentage= count/(sum(count))*100 ) %>% 
+  arrange(desc(percentage))
 
 
 listings <- listings %>%
   mutate(prop_type_simplified = case_when(
-    property_type %in% c("Entire rental unit","Entire serviced apartment", "Entire condominium (condo)","Entire residential home") ~ property_type, 
+    property_type %in% c("Entire rental unit","Private room in rental unit", "Room in boutique hotel","Entire serviced apartment") ~ property_type, 
     TRUE ~ "Other"
   ))
 
@@ -185,6 +156,7 @@ listings %>%
   count(property_type, prop_type_simplified) %>%
   arrange(desc(n))  
 
+unique(listings ["prop_type_simplified"])
 ```
 
 ```{r}
@@ -228,11 +200,12 @@ new_listings<- listings %>%
 new_listings <-drop_na(new_listings)
 head(new_listings)
 
+skimr::skim(new_listings)
 ```
 
 ##Informative Visualization
 
-As we see from the graph, the distribution of price is positively skewed with most of the values <1,000 and some very large values like +100,000. Computing the explanatory statistics, we see that man price is 650.96 while the maximum price is 103,133.
+As we see from the graph, the distribution of price is positively skewed with most of the values <1,000 and some very large values like +100,000. Computing the explanatory statistics, we see that mean price is 562.24 while the maximum price is 80,089.
 
 ```{r fig.width = 12, fig.height = 12}
 
@@ -252,7 +225,7 @@ ggplot(new_listings, aes(y= price)) +
     title = "Box Plot for Price",
     y     = "Price")
 
-round(mosaic::favstats(unlist(listings ["price"])), digits = 2)
+round(mosaic::favstats(unlist(new_listings ["price"])), digits = 2)
 
 ```
 
@@ -327,11 +300,11 @@ ggplot(new_listings, aes(x= number_of_reviews)) +
     y     = "Density",
     x="Number of Reviews")
 
-round(mosaic::favstats(unlist(listings ["number_of_reviews"])), digits = 2)
+round(mosaic::favstats(unlist(new_listings ["number_of_reviews"])), digits = 2)
 ```
-Majority of the reviews are centered around 5 with a mean 4,46 and median 4,8. There are 11,983 entries for review scores rating but we have almost two times more listings. Therefore, we can assume that, guests provide rating when they are satisfied with the property/host/service, etc. If they think that the service is on average or below average, they do not provide as much as feedback as they do when they are satisfied. 
+Majority of the reviews are centered around 5 with a mean 4.57 and median 4.8. We can assume that, guests provide rating when they are satisfied with the property/host/service, etc. If they think that the service is on average or below average, they do not provide as much as feedback as they do when they are satisfied. 
 
-We would expect higher concentration around rating=1 & 2, because people tend to give feedback when they are not satisfied with the service they get. Alternatively, there is not much dissatisfaction and guests are happy with the service. 
+We would expect higher concentration around rating= 1 & 2, because people tend to give feedback when they are not satisfied with the service they get. However, alternatively, there might not be much dissatisfaction and guests are happy with the service they get. 
 
 ```{r fig.width = 12, fig.height = 12}
 #Density Plot for Review Scores Rating
@@ -343,7 +316,7 @@ ggplot(new_listings, aes(x= review_scores_rating)) +
     y     = "Density",
     x= "Review Scores Rating")
 
-round(mosaic::favstats(unlist(listings ["review_scores_rating"])), digits = 2)
+round(mosaic::favstats(unlist(new_listings ["review_scores_rating"])), digits = 2)
 ```
 37% of properties listed accommodate 2 people. The percentage properties with +6 accommodates is very low approximately 6%. 
 
@@ -364,7 +337,7 @@ new_listings %>%
   arrange(desc(percentage))
 
 ```
-There are 5 property types (simplified version). Within those 5 units, "Entire Rental Unit" has the majority of the weight, 48,5% followed by "Other" 37,3%.
+There are 5 property types (simplified version). Within those 5 units, "Entire Rental Unit" has the majority of the weight, 48.5% followed by "Other" 25.43%.
 
 ```{r fig.width = 12, fig.height = 12}
 #Bar chart for Property Type
@@ -382,7 +355,7 @@ new_listings %>%
   mutate(percentage= count/sum(count) *100) %>% 
   arrange(desc(percentage))
 ```
-There are 4 types of rooms, "Entire home", "Private room", "Hotel room", and "Shared room". Approximately 70% of listings' room type is "Entire home".
+There are 4 types of rooms, "Entire home", "Private room", "Hotel room", and "Shared room". Approximately 70% of listings are in the "Entire home/apt" category.
 ```{r fig.width = 12, fig.height = 12}
 #Bar chart for Room Type
 ggplot(new_listings, aes(y= room_type )) +
@@ -399,7 +372,7 @@ new_listings %>%
   mutate(percentage= count/sum(count) *100) %>% 
   arrange(desc(percentage))
 ```
-As expected, neighborhood is an important factor determining the price of the property. Majority of the properties are in Beyoglu & Fatih which is the most touristic region of Istanbul. 
+As expected, neighborhood is an important factor determining the price of the property. Majority of the properties are in Beyoglu & Fatih which are the most touristic regions of Istanbul. 
 
 ```{r fig.width = 12, fig.height = 12}
 #Bar chart for Neighborhood
