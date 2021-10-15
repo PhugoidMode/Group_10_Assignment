@@ -507,6 +507,7 @@ mosaic::msummary(model1)
 We want to determine if `room_type` is a significant predictor of the cost for 4 nights, given everything else in the model. Fit a regression model called model2 that includes all of the explananatory variables in `model1` plus `room_type`. 
 ```{r}
 model2 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_scores_rating + room_type, data = four_nights_for_two_listings)
+
 mosaic::msummary(model2)
 ```
 
@@ -537,6 +538,11 @@ autoplot(model1) +
   theme_bw()
 ```
 
+<<<<<<< HEAD
+=======
+
+1. As you start building models with more explanatory variables, make sure you use `car::vif(model_x)`` to calculate the **Variance Inflation Factor (VIF)** for your predictors and determine whether you have colinear variables. A general guideline is that a VIF larger than 5 or 10 is large, and your model may suffer from collinearity. Remove the variable in question and run your model again without it.
+>>>>>>> ae5ea68782d942fea9e8d5d1ff6626a77b4fcc5b
 
 1. As you start building models with more explanatory variables, make sure you use `car::vif(model_x)`` to calculate the **Variance Inflation Factor (VIF)** for your predictors and determine whether you have colinear variables. A general guideline is that a VIF larger than 5 or 10 is large, and your model may suffer from collinearity. Remove the variable in question and run your model again without it.
 ```{r}
