@@ -511,6 +511,39 @@ model2 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_
 mosaic::msummary(model2)
 ```
 
+## Further variables/questions to explore on our own
+
+Our dataset has many more variables, so here are some ideas on how you can extend your analysis
+
+1. Are the number of `bathrooms`, `bedrooms`, `beds`, or size of the house (`accomodates`) significant predictors of `price_4_nights`? Or might these be co-linear variables?
+
+```{r}
+#Test whether these variables are significant predictors of 'price_4_nights'
+
+model_test<- lm(price_4_nights ~ bathrooms + bedrooms + beds + accommodates, data = four_nights_for_two_listings)
+
+mosaic::msummary(model_test)
+
+```
+```{r}
+#Check whether they are co-linear variables 
+
+correlation_check <- four_nights_for_two_listings %>% 
+  select(price_4_nights, bathrooms, bedrooms, beds, accommodates)%>% 
+  ggpairs()
+  
+correlation_check
+```
+
+
+1. Do superhosts `(host_is_superhost`) command a pricing premium, after controlling for other variables?
+
+
+1. Some hosts allow you to immediately book their listing (`instant_bookable == TRUE`), while a non-trivial proportion don't. After controlling for other variables, is `instant_bookable` a significant predictor of `price_4_nights`?
+
+
+1. For all cities, there are 3 variables that relate to neighbourhoods: `neighbourhood`, `neighbourhood_cleansed`, and `neighbourhood_group_cleansed`. There are typically more than 20 neighbourhoods in each city, and it wouldn't make sense to include them all in your model. Use your city knowledge, or ask someone with city knowledge, and see whether you can group neighbourhoods together so the majority of listings falls in fewer (5-6 max) geographical areas. You would thus need to create a new categorical variabale `neighbourhood_simplified` and determine whether location is a predictor of `price_4_nights`
+
 ```{r}
 #Group neighbourhood into 6 areas based on their geographical position
 unique(four_nights_for_two_listings$neighbourhood_cleansed)
@@ -542,19 +575,6 @@ model3 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_
 
 mosaic::msummary(model3)
 ```
-
-## Further variables/questions to explore on our own
-
-Our dataset has many more variables, so here are some ideas on how you can extend your analysis
-
-1. Are the number of `bathrooms`, `bedrooms`, `beds`, or size of the house (`accomodates`) significant predictors of `price_4_nights`? Or might these be co-linear variables?
-
-1. Do superhosts `(host_is_superhost`) command a pricing premium, after controlling for other variables?
-
-1. Some hosts allow you to immediately book their listing (`instant_bookable == TRUE`), while a non-trivial proportion don't. After controlling for other variables, is `instant_bookable` a significant predictor of `price_4_nights`?
-
-1. For all cities, there are 3 variables that relate to neighbourhoods: `neighbourhood`, `neighbourhood_cleansed`, and `neighbourhood_group_cleansed`. There are typically more than 20 neighbourhoods in each city, and it wouldn't make sense to include them all in your model. Use your city knowledge, or ask someone with city knowledge, and see whether you can group neighbourhoods together so the majority of listings falls in fewer (5-6 max) geographical areas. You would thus need to create a new categorical variabale `neighbourhood_simplified` and determine whether location is a predictor of `price_4_nights`
-
 
 1. What is the effect of `avalability_30` or `reviews_per_month` on `price_4_nights`, after we control for other variables?
 
@@ -595,7 +615,7 @@ car::vif(model3)
 
 ```{r}
 # Compare models using 'huxtable'
-huxreg(model1, model2, model3, model4,model5,
+huxreg(model1, model2, model3,
        statistics = c('#observations' = 'nobs', 
                       'R squared' = 'r.squared', 
                       'Adj. R Squared' = 'adj.r.squared', 
@@ -608,6 +628,18 @@ huxreg(model1, model2, model3, model4,model5,
 
 1. Finally, you must use the best model you came up with for prediction. Suppose you are planning to visit the city you have been assigned to over reading week, and you want to stay in an Airbnb. Find Airbnb's in your destination city that are apartments with a private room, have at least 10 reviews, and an average rating of at least 90. Use your best model to predict the total cost to stay at this Airbnb for 4 nights. Include the appropriate 95% interval with your prediction. Report the point prediction and interval in terms of `price_4_nights`. 
   - if you used a log(price_4_nights) model, make sure you anti-log to convert the value in $. You can read more about [hot to interpret a regression model when some variables are log transformed here](https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/)
+
+```{r}
+#Filter a private room, at least 10 reviews, average rating of at least 90
+head(four_nights_for_two_listings)
+unique(four_nights_for_two_listings$prop_type_simplified)
+
+updated_four_nights_for_two_listings <- four_nights_for_two_listings %>% 
+  filter(prop_type_simplified == "Private room" & number_of_reviews >= 10 & review_scores_rating >= 4.5)
+
+head(updated_four_nights_for_two_listings)
+
+```
 
 
 # Deliverables
