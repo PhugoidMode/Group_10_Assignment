@@ -536,7 +536,7 @@ mosaic::msummary(model1)
 
 We want to determine if `room_type` is a significant predictor of the cost for 4 nights, given everything else in the model. Fit a regression model called model2 that includes all of the explananatory variables in `model1` plus `room_type`. 
 ```{r}
-model2 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_scores_rating, data = four_nights_for_two_listings + room_type)
+model2 <- lm(price_4_nights ~ room_type, data = four_nights_for_two_listings)
 
 mosaic::msummary(model2)
 ```
