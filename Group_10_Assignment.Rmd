@@ -614,13 +614,14 @@ huxreg(model1, model2, model3,
 
 ```{r}
 #Filter a private room, at least 10 reviews, average rating of at least 90% of 5(since the rating is from 0 to 5, not 0 to 100)
-head(four_nights_for_two_listings)
-unique(four_nights_for_two_listings$prop_type_simplified)
 
 updated_four_nights_for_two_listings <- four_nights_for_two_listings %>% 
-  filter(prop_type_simplified == "Private room" & number_of_reviews >= 10 & review_scores_rating >= 4.5)
+  filter(room_type == "Private room" & number_of_reviews >= 10 & review_scores_rating >= 4.5)
 
 head(updated_four_nights_for_two_listings)
+
+```
+```{r}
 
 ```
 
