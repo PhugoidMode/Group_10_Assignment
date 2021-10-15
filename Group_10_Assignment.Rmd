@@ -529,6 +529,33 @@ Our dataset has many more variables, so here are some ideas on how you can exten
 
 1. For all cities, there are 3 variables that relate to neighbourhoods: `neighbourhood`, `neighbourhood_cleansed`, and `neighbourhood_group_cleansed`. There are typically more than 20 neighbourhoods in each city, and it wouldn't make sense to include them all in your model. Use your city knowledge, or ask someone with city knowledge, and see whether you can group neighbourhoods together so the majority of listings falls in fewer (5-6 max) geographical areas. You would thus need to create a new categorical variabale `neighbourhood_simplified` and determine whether location is a predictor of `price_4_nights`
 
+```{r}
+#Group neighbourhood into 6 areas based on their geographical position
+unique(new_listings$neighbourhood_cleansed)
+
+east <- c("Pendik","Tuzla","Cekmekoy","Sancaktepe","Sile","Umraniye","Kartal","Maltepe")
+central_west <- c("Beyoglu","Sariyer","Sisli", "Besiktas","Kagithane")
+central_east <- c("Uskudar","Kadikoy","Beykoz","Adalar","Atasehir")
+west_south <- c("Bagcilar","Basaksehir","Bakirkoy","Bahcelievler","Zeytinburnu","Bayrampasa","Gungoren","Gaziosmanpasa","Esenler")
+west <- c("Esenyurt","Avcilar","Silivri","Buyukcekmece","Kucukcekmece","Catalca","Beylikduzu")
+west_north <- c("Arnavutkoy","Eyup","Fatih","Sultangazi")
+
+new_listings <- new_listings %>% 
+  mutate(neighbourhood_simplified = case_when(
+    neighbourhood_cleansed %in% east ~ "East", 
+    neighbourhood_cleansed %in% central_west ~ "Central_west",
+    neighbourhood_cleansed %in% central_east ~ "Central_east",
+    neighbourhood_cleansed %in% west_south ~ "West_south",
+    neighbourhood_cleansed %in% west ~ "West",
+    neighbourhood_cleansed %in% west_north ~ "West_north"
+  ))
+
+
+unique(new_listings$neighbourhood_simplified)
+
+```
+
+
 1. What is the effect of `avalability_30` or `reviews_per_month` on `price_4_nights`, after we control for other variables?
 
 
