@@ -550,16 +550,18 @@ mosaic::msummary(model2)
 ```
 
 
-
-
 ## Further variables/questions to explore on our own
 
 Our dataset has many more variables, so here are some ideas on how you can extend your analysis
 
 1. Are the number of `bathrooms`, `bedrooms`, `beds`, or size of the house (`accomodates`) significant predictors of `price_4_nights`? Or might these be co-linear variables?
+
 1. Do superhosts `(host_is_superhost`) command a pricing premium, after controlling for other variables?
+
 1. Some hosts allow you to immediately book their listing (`instant_bookable == TRUE`), while a non-trivial proportion don't. After controlling for other variables, is `instant_bookable` a significant predictor of `price_4_nights`?
+
 1. For all cities, there are 3 variables that relate to neighbourhoods: `neighbourhood`, `neighbourhood_cleansed`, and `neighbourhood_group_cleansed`. There are typically more than 20 neighbourhoods in each city, and it wouldn't make sense to include them all in your model. Use your city knowledge, or ask someone with city knowledge, and see whether you can group neighbourhoods together so the majority of listings falls in fewer (5-6 max) geographical areas. You would thus need to create a new categorical variabale `neighbourhood_simplified` and determine whether location is a predictor of `price_4_nights`
+
 1. What is the effect of `avalability_30` or `reviews_per_month` on `price_4_nights`, after we control for other variables?
 
 
@@ -568,6 +570,13 @@ Our dataset has many more variables, so here are some ideas on how you can exten
 As you keep building your models, it makes sense to:
 
 1. Check the residuals, using `autoplot(model_x)`
+```{r}
+library(ggfortify)
+autoplot(model1) + 
+  theme_bw()
+```
+
+
 1. As you start building models with more explanatory variables, make sure you use `car::vif(model_x)`` to calculate the **Variance Inflation Factor (VIF)** for your predictors and determine whether you have colinear variables. A general guideline is that a VIF larger than 5 or 10 is large, and your model may suffer from collinearity. Remove the variable in question and run your model again without it.
 
 ```{r}
