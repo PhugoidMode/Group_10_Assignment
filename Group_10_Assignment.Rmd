@@ -22,7 +22,6 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE,
 
 
 ```{r load-libraries, echo=FALSE}
-
 library(tidyverse) # the usual stuff: dplyr, readr, and other goodies
 library(lubridate) # to handle dates
 library(GGally) # for correlation-scatter plot matrix
@@ -56,12 +55,9 @@ All of the listings are a GZ file, namely they are archive files compressed by t
 
 
 ```{r load_data, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE}
-
 # use cache=TRUE so you dont donwload the data everytime you knit
-
 listings <- vroom("http://data.insideairbnb.com/turkey/marmara/istanbul/2021-09-30/data/listings.csv.gz") %>% 
        clean_names()
-
 ```
 
 
@@ -137,15 +133,12 @@ round(mosaic::favstats(unlist(listings ["review_scores_rating"])), digits = 2)
 #Change the type of Price to Numeric
 listings <- listings %>% 
   mutate(price = parse_number(price))
-
 #Change the type of Host Response Rate to Numeric
 listings$host_response_rate <- round((as.numeric(gsub('.{1}$', '', listings$host_response_rate)))/100, digits=2)
-
 #Change the type of Bathroom to Numeric
 listings$bathrooms_text <- as.numeric(sub("^(.{1}).*", "\\1",listings$bathrooms_text ) )
 listings <- listings %>% 
   mutate(bathrooms=bathrooms_text ) #changed the name of bathroom_text to bathrooms
-
 listings %>% 
   select(bathrooms)
 ```
@@ -154,37 +147,30 @@ listings %>%
 
 ```{r}
 #Box plot for Minimum Nights & Filtering for Travel Conditions
-
 ggplot(listings, aes(y= minimum_nights)) +
   geom_boxplot()+
   theme_bw() +
   labs(title= "Box Plot for Minimum Nights",
        y="Minimum Nights") 
-
 #Most common values for minimum nights is 1. As discussed above, there are properties that are only available for the long-term rent. For example, there is a property with minimum night stay of 730 days. Since we consider travel conditions, we should eliminate those by filtering minimum_nights <= 4 below.
  
 ```
 
 ``` {r}
 #Defining 5 Categories for Property Type
-
 listings %>% 
   group_by(property_type) %>% 
   summarise(count= count (property_type)) %>% 
   arrange(desc(count)) %>% 
   mutate(percentage= count/(sum(count)))
-
-
 listings <- listings %>%
   mutate(prop_type_simplified = case_when(
     property_type %in% c("Entire rental unit","Entire serviced apartment", "Entire condominium (condo)","Entire residential home") ~ property_type, 
     TRUE ~ "Other"
   ))
-
 listings %>%
   count(property_type, prop_type_simplified) %>%
   arrange(desc(n))  
-
 ```
 
 ```{r}
@@ -220,14 +206,11 @@ new_listings<- listings %>%
          host_has_profile_pic,
          host_is_superhost) %>%
   filter(accommodates >1,minimum_nights <= 4)
-
 #Since we are interested in properties for 2 people, we need to eliminate the properties for only one person
 #Our analysis is based on the travel data, so we filter the entries with minimum_nights <= 4
-
 #Dropping missing values of the new dataframe
 new_listings <-drop_na(new_listings)
 head(new_listings)
-
 ```
 
 ##Informative Visualization
@@ -235,7 +218,6 @@ head(new_listings)
 As we see from the graph, the distribution of price is positively skewed with most of the values <1,000 and some very large values like +100,000. Computing the explanatory statistics, we see that man price is 650.96 while the maximum price is 103,133.
 
 ```{r fig.width = 12, fig.height = 12}
-
 #Density Plot for Price
 ggplot(new_listings, aes(x= price)) +
   geom_density(alpha=0.2) +   
@@ -244,16 +226,13 @@ ggplot(new_listings, aes(x= price)) +
     title = "Density Plot for Price",
     y     = "Density",
     x= "Price")
-
 ggplot(new_listings, aes(y= price)) +
   geom_boxplot() +   
   theme_bw() +                
   labs (
     title = "Box Plot for Price",
     y     = "Price")
-
 round(mosaic::favstats(unlist(listings ["price"])), digits = 2)
-
 ```
 
 Plotting the histogram for availability within x= 30, 60, 90 and 365 days, we see that in each case, most of the properties are either not available or available +(x-5) days. Exceptionally, in the case of availability within the next 365, there is a seasonal pattern in every 100 days. So, some of the properties are available within next 100 days, 200 days, or +300 days. 
@@ -304,7 +283,6 @@ ggplot(new_listings, aes(x= availability_365)) +
 Since we filtered data based on travel conditions (minimum_nights<=4), we have 4 values for this variable; 1, 2, 3 and 4. Majority of the properties have a minimum 1-night stay. 
 
 ```{r fig.width = 12, fig.height = 12}
-
 #Histogram for Minimum Nights 
 ggplot(new_listings, aes(x= minimum_nights)) +
   geom_histogram(alpha=0.2) +   
@@ -326,7 +304,6 @@ ggplot(new_listings, aes(x= number_of_reviews)) +
     title = "Density Plot for Number of Reviews",
     y     = "Density",
     x="Number of Reviews")
-
 round(mosaic::favstats(unlist(listings ["number_of_reviews"])), digits = 2)
 ```
 Majority of the reviews are centered around 5 with a mean 4,46 and median 4,8. There are 11,983 entries for review scores rating but we have almost two times more listings. Therefore, we can assume that, guests provide rating when they are satisfied with the property/host/service, etc. If they think that the service is on average or below average, they do not provide as much as feedback as they do when they are satisfied. 
@@ -342,7 +319,6 @@ ggplot(new_listings, aes(x= review_scores_rating)) +
     title = "Density Plot for Review Scores Rating",
     y     = "Density",
     x= "Review Scores Rating")
-
 round(mosaic::favstats(unlist(listings ["review_scores_rating"])), digits = 2)
 ```
 37% of properties listed accommodate 2 people. The percentage properties with +6 accommodates is very low approximately 6%. 
@@ -356,13 +332,11 @@ ggplot(new_listings, aes(x= accommodates )) +
     title = "Number of Accommodates in a Property",
     x= "Accomodates",
     y= "Number of Properties")
-
 new_listings %>% 
   group_by(accommodates) %>% 
   summarise(count=count(accommodates)) %>% 
   mutate(percentage= count/sum(count) *100) %>% 
   arrange(desc(percentage))
-
 ```
 There are 5 property types (simplified version). Within those 5 units, "Entire Rental Unit" has the majority of the weight, 48,5% followed by "Other" 37,3%.
 
@@ -375,7 +349,6 @@ ggplot(new_listings, aes(y= prop_type_simplified )) +
     title = "Property Type",
     x="Number of Properties",
     y="Property Type")
-
 new_listings %>% 
   group_by(prop_type_simplified) %>% 
   summarise(count=count(prop_type_simplified)) %>% 
@@ -392,7 +365,6 @@ ggplot(new_listings, aes(y= room_type )) +
     title = "Room Type",
     x= "Number of Properties",
     y= "Room Type")
-
 new_listings %>% 
   group_by(room_type) %>% 
   summarise(count=count(room_type)) %>% 
@@ -422,10 +394,8 @@ ggplot(new_listings, aes(x= instant_bookable)) +
     title = "Instant Bookability",
     x= "Status of Instant Bookability",
     y= "Number of Properties")
-
 new_listings %>% 
   count(instant_bookable) 
-
 ```
 
 Identity verification might be a significant factor in determining the price of a property. But, most of the properties', 83%, host is verified. 
@@ -439,10 +409,8 @@ ggplot(new_listings, aes(x= host_identity_verified  )) +
     title = "Host Identity Verification",
     y= "Number of Identifications",
     x= "Identity Verification Status")
-
 new_listings %>% 
   count(host_identity_verified) 
-
 ```
 
 
@@ -459,13 +427,10 @@ Interestingly, we see that the number of reviews has relatively low correlation 
 The strongest correlation with price is number of accommodates which is 0,244.
 
 ```{r fig.width = 20, fig.height = 20}
-
 correlation_data <- new_listings %>% 
   dplyr::select(where(is.numeric)) %>% 
   ggpairs()
-
 correlation_data
-
 ```
 
     
@@ -477,7 +442,6 @@ The following code, having downloaded a dataframe `listings` with all AirbnB lis
 
 
 ```{r, out.width = '80%'}
-
 leaflet(data = filter(listings, minimum_nights <= 4)) %>% 
   addProviderTiles("OpenStreetMap.Mapnik") %>% 
   addCircleMarkers(lng = ~longitude, 
@@ -502,7 +466,6 @@ Create a new variable called `price_4_nights` that uses `price`, and `accomodate
 four_nights_for_two_listings <- new_listings %>%
   filter(minimum_nights <= 4 & maximum_nights >= 4 & accommodates >= 2) %>% 
   mutate(price_4_nights = price * 4) # Total cost of staying four nights 
-
 skim(four_nights_for_two_listings)
 ```
 
@@ -516,7 +479,6 @@ ggplot(four_nights_for_two_listings, aes(x= price_4_nights)) +
     title = "Density Plot for price_4_nights",
     y     = "Density",
     x= "price_4_nights")
-
 ```
 ```{r}
 #Density Plot for log(price_4_nights)
@@ -544,12 +506,9 @@ mosaic::msummary(model1)
 
 We want to determine if `room_type` is a significant predictor of the cost for 4 nights, given everything else in the model. Fit a regression model called model2 that includes all of the explananatory variables in `model1` plus `room_type`. 
 ```{r}
-model2 <- lm(price_4_nights ~ room_type, data = four_nights_for_two_listings)
-
+model2 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_scores_rating + room_type, data = four_nights_for_two_listings)
 mosaic::msummary(model2)
 ```
-
-
 
 
 ## Further variables/questions to explore on our own
@@ -557,9 +516,13 @@ mosaic::msummary(model2)
 Our dataset has many more variables, so here are some ideas on how you can extend your analysis
 
 1. Are the number of `bathrooms`, `bedrooms`, `beds`, or size of the house (`accomodates`) significant predictors of `price_4_nights`? Or might these be co-linear variables?
+
 1. Do superhosts `(host_is_superhost`) command a pricing premium, after controlling for other variables?
+
 1. Some hosts allow you to immediately book their listing (`instant_bookable == TRUE`), while a non-trivial proportion don't. After controlling for other variables, is `instant_bookable` a significant predictor of `price_4_nights`?
+
 1. For all cities, there are 3 variables that relate to neighbourhoods: `neighbourhood`, `neighbourhood_cleansed`, and `neighbourhood_group_cleansed`. There are typically more than 20 neighbourhoods in each city, and it wouldn't make sense to include them all in your model. Use your city knowledge, or ask someone with city knowledge, and see whether you can group neighbourhoods together so the majority of listings falls in fewer (5-6 max) geographical areas. You would thus need to create a new categorical variabale `neighbourhood_simplified` and determine whether location is a predictor of `price_4_nights`
+
 1. What is the effect of `avalability_30` or `reviews_per_month` on `price_4_nights`, after we control for other variables?
 
 
@@ -568,8 +531,14 @@ Our dataset has many more variables, so here are some ideas on how you can exten
 As you keep building your models, it makes sense to:
 
 1. Check the residuals, using `autoplot(model_x)`
-1. As you start building models with more explanatory variables, make sure you use `car::vif(model_x)`` to calculate the **Variance Inflation Factor (VIF)** for your predictors and determine whether you have colinear variables. A general guideline is that a VIF larger than 5 or 10 is large, and your model may suffer from collinearity. Remove the variable in question and run your model again without it.
+```{r}
+library(ggfortify)
+autoplot(model1) + 
+  theme_bw()
+```
 
+
+1. As you start building models with more explanatory variables, make sure you use `car::vif(model_x)`` to calculate the **Variance Inflation Factor (VIF)** for your predictors and determine whether you have colinear variables. A general guideline is that a VIF larger than 5 or 10 is large, and your model may suffer from collinearity. Remove the variable in question and run your model again without it.
 ```{r}
 # Check whether any model has a VIF (Variance Inflation Factor) greater than 5
 car::vif(model1)
