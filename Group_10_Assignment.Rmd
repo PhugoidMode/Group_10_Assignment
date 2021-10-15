@@ -124,13 +124,6 @@ ggplot(listings, aes(y= minimum_nights)) +
   theme_bw() +
   labs(title= "Box Plot for Minimum Nights",
        y="Minimum Nights") 
-<<<<<<< HEAD
-
-
-=======
-#Most common values for minimum nights is 1. As discussed above, there are properties that are only available for the long-term rent. For example, there is a property with minimum night stay of 730 days. Since we consider travel conditions, we should eliminate those by filtering minimum_nights <= 4 below.
- 
->>>>>>> 177e6b501942907add086f594ed1302e499efc89
 ```
 
 ``` {r}
@@ -138,15 +131,9 @@ ggplot(listings, aes(y= minimum_nights)) +
 listings %>% 
   group_by(property_type) %>% 
   summarise(count= count (property_type)) %>% 
-<<<<<<< HEAD
   mutate(percentage= count/(sum(count))*100 ) %>% 
   arrange(desc(percentage))
 
-
-=======
-  arrange(desc(count)) %>% 
-  mutate(percentage= count/(sum(count)))
->>>>>>> 177e6b501942907add086f594ed1302e499efc89
 listings <- listings %>%
   mutate(prop_type_simplified = case_when(
     property_type %in% c("Entire rental unit","Private room in rental unit", "Room in boutique hotel","Entire serviced apartment") ~ property_type, 
@@ -155,11 +142,9 @@ listings <- listings %>%
 listings %>%
   count(property_type, prop_type_simplified) %>%
   arrange(desc(n))  
-<<<<<<< HEAD
 
 unique(listings ["prop_type_simplified"])
-=======
->>>>>>> 177e6b501942907add086f594ed1302e499efc89
+
 ```
 
 ```{r}
@@ -200,11 +185,9 @@ new_listings<- listings %>%
 #Dropping missing values of the new dataframe
 new_listings <-drop_na(new_listings)
 head(new_listings)
-<<<<<<< HEAD
 
 skimr::skim(new_listings)
-=======
->>>>>>> 177e6b501942907add086f594ed1302e499efc89
+
 ```
 
 ##Informative Visualization
@@ -226,13 +209,9 @@ ggplot(new_listings, aes(y= price)) +
   labs (
     title = "Box Plot for Price",
     y     = "Price")
-<<<<<<< HEAD
 
 round(mosaic::favstats(unlist(new_listings ["price"])), digits = 2)
 
-=======
-round(mosaic::favstats(unlist(listings ["price"])), digits = 2)
->>>>>>> 177e6b501942907add086f594ed1302e499efc89
 ```
 
 Plotting the histogram for availability within x= 30, 60, 90 and 365 days, we see that in each case, most of the properties are either not available or available +(x-5) days. Exceptionally, in the case of availability within the next 365, there is a seasonal pattern in every 100 days. So, some of the properties are available within next 100 days, 200 days, or +300 days. 
@@ -304,12 +283,9 @@ ggplot(new_listings, aes(x= number_of_reviews)) +
     title = "Density Plot for Number of Reviews",
     y     = "Density",
     x="Number of Reviews")
-<<<<<<< HEAD
 
 round(mosaic::favstats(unlist(new_listings ["number_of_reviews"])), digits = 2)
-=======
-round(mosaic::favstats(unlist(listings ["number_of_reviews"])), digits = 2)
->>>>>>> 177e6b501942907add086f594ed1302e499efc89
+
 ```
 Majority of the reviews are centered around 5 with a mean 4.57 and median 4.8. We can assume that, guests provide rating when they are satisfied with the property/host/service, etc. If they think that the service is on average or below average, they do not provide as much as feedback as they do when they are satisfied. 
 
@@ -324,12 +300,9 @@ ggplot(new_listings, aes(x= review_scores_rating)) +
     title = "Density Plot for Review Scores Rating",
     y     = "Density",
     x= "Review Scores Rating")
-<<<<<<< HEAD
 
 round(mosaic::favstats(unlist(new_listings ["review_scores_rating"])), digits = 2)
-=======
-round(mosaic::favstats(unlist(listings ["review_scores_rating"])), digits = 2)
->>>>>>> 177e6b501942907add086f594ed1302e499efc89
+
 ```
 37% of properties listed accommodate 2 people. The percentage properties with +6 accommodates is very low approximately 6%. 
 
