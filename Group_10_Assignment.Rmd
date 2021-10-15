@@ -517,23 +517,23 @@ ggplot(four_nights_for_two_listings, aes(x= price_4_nights)) +
     y     = "Density",
     x= "price_4_nights")
 
-
+```
+```{r}
 #Density Plot for log(price_4_nights)
 ggplot(four_nights_for_two_listings, aes(x= price_4_nights)) +
   geom_density(alpha=0.2) +   
   scale_x_log10() +
   theme_bw() +                
   labs (
-    title = "Density Plot for price_4_nights",
+    title = "Density Plot for log(price_4_nights)",
     y     = "Density",
-    x= "price_4_nights")
-
+    x= "log(price_4_nights)")
 ```
 
 
 Fit a regression model called `model1` with the following explanatory variables: `prop_type_simplified`, `number_of_reviews`, and `review_scores_rating`. 
 ```{r}
-model1 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_scores_rating, data = four_nights_for_two_listings) #change prop_type_simplified into numerical 
+model1 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_scores_rating, data = four_nights_for_two_listings) 
  
 mosaic::msummary(model1)
 ```
