@@ -559,8 +559,36 @@ model3 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_
 mosaic::msummary(model3)
 ```
 
-1. What is the effect of `avalability_30` or `reviews_per_month` on `price_4_nights`, after we control for other variables?
+Adding in a model for reviews, check for correlations between reviews per month and 30 day availability first: 
 
+```{r}
+#Check whether they are co-linear variables 
+
+correlation_check_availability_reviewspcm <- four_nights_for_two_listings %>% 
+  select(price_4_nights, availability_30, reviews_per_month)%>% 
+  ggpairs()
+  
+correlation_check_availability_reviewspcm
+```
+Seem fine so adding these to a fourth model: 
+
+```{r}
+model4 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + 
+               review_scores_rating + availability_30 + reviews_per_month, 
+             data = four_nights_for_two_listings)
+
+mosaic::msummary(model4)
+```
+
+Create a model5 which combines elements of 2 and 3:
+
+```{r}
+model5 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + 
+               review_scores_rating + neighbourhood_simplified + room_type, 
+             data = four_nights_for_two_listings)
+
+mosaic::msummary(model5)
+```
 
 ## Diagnostics, collinearity, summary tables
 
@@ -579,6 +607,12 @@ autoplot(model2) +
 autoplot(model3) + 
   theme_bw()
 
+autoplot(model4) + 
+  theme_bw()
+
+autoplot(model5) + 
+  theme_bw()
+
 ```
 
 
@@ -589,6 +623,8 @@ autoplot(model3) +
 car::vif(model1)
 car::vif(model2)
 car::vif(model3)
+car::vif(model4)
+car::vif(model5)
 ```
 
 
@@ -598,7 +634,7 @@ car::vif(model3)
 
 ```{r}
 # Compare models using 'huxtable'
-huxreg(model1, model2, model3,
+huxreg(model1, model2, model3, model4, model5,
        statistics = c('#observations' = 'nobs', 
                       'R squared' = 'r.squared', 
                       'Adj. R Squared' = 'adj.r.squared', 
@@ -622,7 +658,22 @@ head(updated_four_nights_for_two_listings)
 
 ```
 ```{r}
+# We can also use broom::augment(). It's  essentially the same thing as predict(), 
+# but it adds the predictions and confidence intervals to the imaginary constituency 
+model_predictions <- broom::augment(model5, 
+                             newdata = updated_four_nights_for_two_listings)
 
+# Now we have two new columns named .fitted and .se.fit: .fitted is the
+# predicted value and .se.fit is the standard error of the predicted value
+model_predictions
+
+# We can plot this now:
+ggplot(model_predictions, aes(x = neighbourhood_simplified, y = .fitted)) +
+  geom_line() +
+  labs(y = "Predicted Price for 4 Nights", # Change this to a line of best fit
+       x = "Neighbourhood")+
+  theme_bw() + 
+  NULL
 ```
 
 
