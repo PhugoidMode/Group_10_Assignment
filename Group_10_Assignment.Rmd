@@ -99,6 +99,8 @@ round(mosaic::favstats(unlist(listings ["review_scores_rating"])), digits = 2)
 
 ###Changing the Types of Variables of Interest
 
+To prepare the variables for the regression model later, we need to modify some of them and change their variable type. For example, we changed the variable types of price and host response rate from a character variable to a numeric variable for the model regression in the next part of this report. This step is necessary because both these variables are numeric variables. 
+
 ```{r}
 #Change the type of Price to Numeric
 listings <- listings %>% 
