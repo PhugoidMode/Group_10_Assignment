@@ -802,3 +802,4 @@ Ultimately, employing a combination of model2 and model3, and using logarithmic 
 # Acknowledgements
 
 The data for this project is from [insideairbnb.com](insideairbnb.com)
+
