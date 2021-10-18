@@ -445,7 +445,20 @@ correlation_data <- new_listings %>%
   dplyr::select(where(is.numeric)) %>% 
   ggpairs()
 correlation_data
+new_listings
 ```
+
+```{r fig.width = 20, fig.height = 20}
+head(new_listings) 
+
+log_listings <- new_listings %>% 
+  mutate(price= log(price,10)) %>% 
+  dplyr::select(where(is.numeric)) %>% 
+  ggpairs()
+log_listings
+
+```
+
 # Mapping 
 
 We can employ mapping packages to create interactive maps overlayed with information on suitable AirBnBs around Istanbul.
