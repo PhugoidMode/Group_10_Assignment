@@ -20,6 +20,14 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE,
   comment = NA, dpi = 300)
 ```
 
+# Executive Summary/Abstract
+
+- We analysed rent prices for Airbnb flats in Istanbul
+- Originally, we had 74 explanatory variables, but we later narrowed the number down to 17 due to logical assumptions and other factors described in more detail later
+- The selected variables had limited relationship with prices per night as shown by relatively low correlation
+- The model that produced the has the highest predictability of prices per night includes the type of property, number of reviews, review scores rating, room type and neighborhood
+- Despite that, the reliability of the model is not high, so further analysis is required to determine the best variables to predict the price per night in Istanbul
+
 
 ```{r load-libraries, echo=FALSE}
 library(tidyverse) # the usual stuff: dplyr, readr, and other goodies
@@ -42,8 +50,9 @@ library(vroom)
 
 
 ```{r load_data, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE}
-# use cache=TRUE so you dont donwload the data everytime you knit
-listings <- vroom("http://data.insideairbnb.com/turkey/marmara/istanbul/2021-09-30/data/listings.csv.gz") %>% 
+
+listings <- 
+  vroom("http://data.insideairbnb.com/turkey/marmara/istanbul/2021-09-30/data/listings.csv.gz") %>% 
        clean_names()
 ```
 
@@ -106,11 +115,13 @@ To prepare the variables for the regression model later, we need to modify some 
 listings <- listings %>% 
   mutate(price = parse_number(price))
 #Change the type of Host Response Rate to Numeric
-listings$host_response_rate <- round((as.numeric(gsub('.{1}$', '', listings$host_response_rate)))/100, digits=2)
+listings$host_response_rate <- round((as.numeric(gsub('.{1}$', '', 
+                                  listings$host_response_rate)))/100, digits=2)
 #Change the type of Bathroom to Numeric
-listings$bathrooms_text <- as.numeric(sub("^(.{1}).*", "\\1",listings$bathrooms_text ) )
+listings$bathrooms_text <- as.numeric(sub("^(.{1}).*", "\\1",
+                                          listings$bathrooms_text ) )
 listings <- listings %>% 
-  mutate(bathrooms=bathrooms_text ) #changed the name of bathroom_text to bathrooms
+  mutate(bathrooms=bathrooms_text ) #changed name of bathroom_text to bathrooms
 listings %>% 
   select(bathrooms)
 ```
@@ -141,7 +152,9 @@ listings %>%
 
 listings <- listings %>%
   mutate(prop_type_simplified = case_when(
-    property_type %in% c("Entire rental unit","Private room in rental unit", "Room in boutique hotel","Entire serviced apartment") ~ property_type, 
+    property_type %in% c("Entire rental unit","Private room in rental unit", 
+                         "Room in boutique hotel",
+                         "Entire serviced apartment") ~ property_type, 
     TRUE ~ "Other"
   ))
 listings %>%
@@ -186,8 +199,10 @@ new_listings<- listings %>%
          host_has_profile_pic,
          host_is_superhost) %>%
   filter(accommodates >1,minimum_nights <= 4)
-#Since we are interested in properties for 2 people, we need to eliminate the properties for only one person
-#Our analysis is based on the travel data, so we filter the entries with minimum_nights <= 4
+#Since we are interested in properties for 2 people, we need to eliminate the 
+# properties for only one person
+#Our analysis is based on the travel data, so we filter the entries with 
+# minimum_nights <= 4
 #Dropping missing values of the new dataframe
 new_listings <-drop_na(new_listings)
 head(new_listings)
@@ -310,7 +325,8 @@ ggplot(new_listings, aes(x= review_scores_rating)) +
     y     = "Density",
     x= "Review Scores Rating")
 
-round(mosaic::favstats(unlist(new_listings ["review_scores_rating"])), digits = 2)
+round(mosaic::favstats(unlist(new_listings ["review_scores_rating"])), 
+      digits = 2)
 
 ```
 Size of an apartment can also influence its price significantly. For example, we expect a property that can accommodate more people to be larger, and therefore influence its price as well. A histogram is used to explore the distribution of people that a property is able to accommodate across the dataset. 
@@ -495,7 +511,8 @@ ggplot(four_nights_for_two_listings, aes(x= price_4_nights)) +
 
 Fit a regression model called `model1` with the following explanatory variables: `prop_type_simplified`, `number_of_reviews`, and `review_scores_rating`. 
 ```{r}
-model1 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_scores_rating, data = four_nights_for_two_listings) 
+model1 <- lm(log(price_4_nights) ~ prop_type_simplified + number_of_reviews + 
+               review_scores_rating, data = four_nights_for_two_listings)
  
 mosaic::msummary(model1)
 ```
@@ -506,7 +523,9 @@ mosaic::msummary(model1)
 
 We want to determine if `room_type` is a significant predictor of the cost for 4 nights, given everything else in the model. Fit a regression model called model2 that includes all of the explananatory variables in `model1` plus `room_type`. 
 ```{r}
-model2 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_scores_rating + room_type, data = four_nights_for_two_listings)
+model2 <- lm(log(price_4_nights) ~ prop_type_simplified + number_of_reviews + 
+               review_scores_rating + room_type, 
+             data = four_nights_for_two_listings)
 
 mosaic::msummary(model2)
 ```
@@ -520,16 +539,21 @@ Our dataset has many more variables, so here are some ideas on how you can exten
 ```{r}
 #Test whether these variables are significant predictors of 'price_4_nights'
 
-model_test<- lm(price_4_nights ~ bathrooms + bedrooms + beds + accommodates, data = four_nights_for_two_listings)
+model_test<- lm(log(price_4_nights) ~ bathrooms + bedrooms + beds + 
+                  accommodates, data = four_nights_for_two_listings)
 
 mosaic::msummary(model_test)
 
 ```
-```{r}
-#Check whether they are co-linear variables 
 
+```{r}
+#Create a new column named log_price
+four_nights_for_two_listings <- four_nights_for_two_listings %>% 
+  mutate(log_price = log(price_4_nights))
+
+#Check whether they are co-linear variables 
 correlation_check <- four_nights_for_two_listings %>% 
-  select(price_4_nights, bathrooms, bedrooms, beds, accommodates)%>% 
+  select(log_price, bathrooms, bedrooms, beds, accommodates)%>% 
   ggpairs()
   
 correlation_check
@@ -548,11 +572,15 @@ correlation_check
 #Group neighbourhood into 6 areas based on their geographical position
 unique(four_nights_for_two_listings$neighbourhood_cleansed)
 
-east <- c("Pendik","Tuzla","Cekmekoy","Sancaktepe","Sile","Umraniye","Kartal","Maltepe")
+east <- c("Pendik","Tuzla","Cekmekoy","Sancaktepe","Sile","Umraniye",
+          "Kartal","Maltepe")
 central_west <- c("Beyoglu","Sariyer","Sisli", "Besiktas","Kagithane")
 central_east <- c("Uskudar","Kadikoy","Beykoz","Adalar","Atasehir")
-west_south <- c("Bagcilar","Basaksehir","Bakirkoy","Bahcelievler","Zeytinburnu","Bayrampasa","Gungoren","Gaziosmanpasa","Esenler")
-west <- c("Esenyurt","Avcilar","Silivri","Buyukcekmece","Kucukcekmece","Catalca","Beylikduzu")
+west_south <- c("Bagcilar","Basaksehir","Bakirkoy","Bahcelievler",
+                "Zeytinburnu","Bayrampasa","Gungoren","Gaziosmanpasa",
+                "Esenler")
+west <- c("Esenyurt","Avcilar","Silivri","Buyukcekmece","Kucukcekmece",
+          "Catalca","Beylikduzu")
 west_north <- c("Arnavutkoy","Eyup","Fatih","Sultangazi")
 
 four_nights_for_two_listings <- four_nights_for_two_listings %>% 
@@ -571,7 +599,9 @@ unique(new_listings$neighbourhood_simplified)
 ```
 
 ```{r}
-model3 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + review_scores_rating + instant_bookable + neighbourhood_simplified, data = four_nights_for_two_listings)
+model3 <- lm(log(price_4_nights) ~ prop_type_simplified + number_of_reviews + 
+               review_scores_rating + instant_bookable + 
+               neighbourhood_simplified, data = four_nights_for_two_listings)
 
 mosaic::msummary(model3)
 ```
@@ -582,7 +612,7 @@ Adding in a model for reviews, check for correlations between reviews per month 
 #Check whether they are co-linear variables 
 
 correlation_check_availability_reviewspcm <- four_nights_for_two_listings %>% 
-  select(price_4_nights, availability_30, reviews_per_month)%>% 
+  select(log_price, availability_30, reviews_per_month)%>% 
   ggpairs()
   
 correlation_check_availability_reviewspcm
@@ -590,7 +620,7 @@ correlation_check_availability_reviewspcm
 Seem fine so adding these to a fourth model: 
 
 ```{r}
-model4 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + 
+model4 <- lm(log(price_4_nights) ~ prop_type_simplified + number_of_reviews + 
                review_scores_rating + availability_30 + reviews_per_month, 
              data = four_nights_for_two_listings)
 
@@ -600,8 +630,14 @@ mosaic::msummary(model4)
 Create a model5 which combines elements of 2 and 3:
 
 ```{r}
-model5 <- lm(price_4_nights ~ prop_type_simplified + number_of_reviews + 
-               review_scores_rating + neighbourhood_simplified + room_type, 
+model5<- lm(log(price_4_nights) ~ prop_type_simplified 
+            + number_of_reviews
+            + review_scores_rating 
+            + neighbourhood_simplified 
+            + availability_30
+            + room_type 
+  
+          , 
              data = four_nights_for_two_listings)
 
 mosaic::msummary(model5)
@@ -633,7 +669,7 @@ autoplot(model5) +
 ```
 
 
-1. As you start building models with more explanatory variables, make sure you use `car::vif(model_x)`` to calculate the **Variance Inflation Factor (VIF)** for your predictors and determine whether you have colinear variables. A general guideline is that a VIF larger than 5 or 10 is large, and your model may suffer from collinearity. Remove the variable in question and run your model again without it.
+Having built our five models, we will use `car::vif(model_x)`` to calculate the **Variance Inflation Factor (VIF)** for our predictors and determine whether we have colinear variables. 
 
 ```{r}
 # Check whether any model has a VIF (Variance Inflation Factor) greater than 5
@@ -666,17 +702,20 @@ huxreg(model1, model2, model3, model4, model5,
   - if you used a log(price_4_nights) model, make sure you anti-log to convert the value in $. You can read more about [hot to interpret a regression model when some variables are log transformed here](https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/)
 
 ```{r}
-#Filter a private room, at least 10 reviews, average rating of at least 90% of 5(since the rating is from 0 to 5, not 0 to 100)
+# Filter a private room, at least 10 reviews, average rating of at least 90% of 
+# 5 (since the rating is from 0 to 5, not 0 to 100)
 
 updated_four_nights_for_two_listings <- four_nights_for_two_listings %>% 
-  filter(room_type == "Private room" & number_of_reviews >= 10 & review_scores_rating >= 4.5)
+  filter(room_type == "Private room" & number_of_reviews >= 10 & 
+           review_scores_rating >= 4.5)
 
 head(updated_four_nights_for_two_listings)
 
 ```
+
 ```{r}
-# We can also use broom::augment(). It's  essentially the same thing as predict(), 
-# but it adds the predictions and confidence intervals to the imaginary constituency 
+# Use broom::augment(). It's  essentially the same thing as predict(), 
+# but it adds the predictions and confidence intervals to the data set
 model_predictions <- broom::augment(model5, 
                              newdata = updated_four_nights_for_two_listings)
 
@@ -684,46 +723,44 @@ model_predictions <- broom::augment(model5,
 # predicted value and .se.fit is the standard error of the predicted value
 model_predictions
 
-# We can plot this now:
-ggplot(model_predictions, aes(x = neighbourhood_simplified, y = .fitted)) +
+model_predictions_antilog <- model_predictions %>%
+  mutate(.fitted_new = exp(.fitted))
+
+# We can plot the neighbourhood predictions:
+ggplot(model_predictions_antilog, aes(x = neighbourhood_simplified, 
+                                      y = .fitted_new)) +
   geom_line() +
   labs(y = "Predicted Price for 4 Nights", # Change this to a line of best fit
        x = "Neighbourhood")+
   theme_bw() + 
   NULL
+
+# Plotting the ratings 
+
+ggplot(model_predictions_antilog, aes(x = review_scores_rating, 
+                                      y = .fitted_new)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) + 
+  labs(y = "Predicted Price for 4 Nights", x = "Rating") +
+  NULL
+
+# Plotting the number of reviews 
+
+ggplot(model_predictions_antilog, aes(x = number_of_reviews, 
+                                      y = .fitted_new)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) + 
+  labs(y = "Predicted Price for 4 Nights", x = "Number of Reviews") +
+  NULL
+
 ```
 
 
-# Deliverables
+# Conclusions
 
-
-- By midnight on Monday 18 Oct 2021, you must upload on Canvas a short presentation (max 4-5 slides) with your findings, as some groups will be asked to present in class. You should present your Exploratory Data Analysis, as well as your best model. In addition, you must upload on Canvas your final report, written  using R Markdown to introduce, frame, and describe your story and findings. You should include the following in the memo:
-
-1. Executive Summary: Based on your best model, indicate the factors that influence `price_4_nights`.
-This should be written for an intelligent but non-technical audience. All
-other sections can include technical writing.
-2. Data Exploration and Feature Selection: Present key elements of the data, including tables and
-graphs that help the reader understand the important variables in the dataset. Describe how the
-data was cleaned and prepared, including feature selection, transformations, interactions, and
-other approaches you considered.
-3. Model Selection and Validation: Describe the model fitting and validation process used. State
-the model you selected and why they are preferable to other choices.
-4. Findings and Recommendations: Interpret the results of the selected model and discuss
-additional steps that might improve the analysis
-  
-  
-
-Remember to follow R Markdown etiquette rules and style; don't have the Rmd output extraneous messages or warnings, include summary tables in nice tables (use `kableExtra`), and remove any placeholder texts from past Rmd templates; in other words, (i.e. I don't want to see stuff I wrote in your final report.)
-  
-  
-# Rubric
-
-Your work will be assessed on a rubric which you can find here
-
-
-```{r rubric, echo=FALSE, out.width="100%"}
-knitr::include_graphics(here::here("images", "rubric.png"), error = FALSE)
-```
+1) Maybe Istanbul is weird?
+2) Other factors affecting price
+3) Strong adjiusted $R^2$ in the end
 
 
 # Acknowledgements
