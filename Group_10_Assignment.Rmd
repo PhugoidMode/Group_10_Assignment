@@ -509,7 +509,7 @@ ggplot(four_nights_for_two_listings, aes(x= price_4_nights)) +
 ```
 
 
-Fit a regression model called `model1` with the following explanatory variables: `prop_type_simplified`, `number_of_reviews`, and `review_scores_rating`. 
+To explore the relationship between price, property type, review count, and ratings, we will fit a regression model called `model1` with the following explanatory variables: `prop_type_simplified`, `number_of_reviews`, and `review_scores_rating`:
 ```{r}
 model1 <- lm(log(price_4_nights) ~ prop_type_simplified + number_of_reviews + 
                review_scores_rating, data = four_nights_for_two_listings)
@@ -518,10 +518,7 @@ mosaic::msummary(model1)
 ```
 
 
-- Interpret the coefficient `review_scores_rating` in terms of `price_4_nights`.
-- Interpret the coefficient of `prop_type_simplified` in terms of `price_4_nights`.
-
-We want to determine if `room_type` is a significant predictor of the cost for 4 nights, given everything else in the model. Fit a regression model called model2 that includes all of the explananatory variables in `model1` plus `room_type`. 
+We want to determine if `room_type` is a significant predictor of the cost for 4 nights, given everything else in the model, so we will fit a regression model called model2 that includes all of the explananatory variables in `model1` plus `room_type`. 
 ```{r}
 model2 <- lm(log(price_4_nights) ~ prop_type_simplified + number_of_reviews + 
                review_scores_rating + room_type, 
@@ -532,9 +529,8 @@ mosaic::msummary(model2)
 
 ## Further variables/questions to explore on our own
 
-Our dataset has many more variables, so here are some ideas on how you can extend your analysis
+Our dataset has many more variables, so we will be extending our analysis by exploring how further variables, such as neighbourhood, affect price.
 
-1. Are the number of `bathrooms`, `bedrooms`, `beds`, or size of the house (`accomodates`) significant predictors of `price_4_nights`? Or might these be co-linear variables?
 
 ```{r}
 #Test whether these variables are significant predictors of 'price_4_nights'
@@ -559,14 +555,7 @@ correlation_check <- four_nights_for_two_listings %>%
 correlation_check
 ```
 
-
-1. Do superhosts `(host_is_superhost`) command a pricing premium, after controlling for other variables?
-
-
-1. Some hosts allow you to immediately book their listing (`instant_bookable == TRUE`), while a non-trivial proportion don't. After controlling for other variables, is `instant_bookable` a significant predictor of `price_4_nights`?
-
-
-1. For all cities, there are 3 variables that relate to neighbourhoods: `neighbourhood`, `neighbourhood_cleansed`, and `neighbourhood_group_cleansed`. There are typically more than 20 neighbourhoods in each city, and it wouldn't make sense to include them all in your model. Use your city knowledge, or ask someone with city knowledge, and see whether you can group neighbourhoods together so the majority of listings falls in fewer (5-6 max) geographical areas. You would thus need to create a new categorical variabale `neighbourhood_simplified` and determine whether location is a predictor of `price_4_nights`
+Several factors can influence price, including the neighbourhood of the property, its availability, and review history. We will add another model, model3, to further explore this relation between neighbourhood and price:
 
 ```{r}
 #Group neighbourhood into 6 areas based on their geographical position
@@ -617,7 +606,7 @@ correlation_check_availability_reviewspcm <- four_nights_for_two_listings %>%
   
 correlation_check_availability_reviewspcm
 ```
-Seem fine so adding these to a fourth model: 
+Seem fine so adding these to a fourth model, this time leaving out the neighbourhood variable and including availability: 
 
 ```{r}
 model4 <- lm(log(price_4_nights) ~ prop_type_simplified + number_of_reviews + 
@@ -643,11 +632,10 @@ model5<- lm(log(price_4_nights) ~ prop_type_simplified
 mosaic::msummary(model5)
 ```
 
-## Diagnostics, collinearity, summary tables
+## Diagnostics, Collinearity, Summary Tables
 
-As you keep building your models, it makes sense to:
+Having built our models, we will check for any issues by plotting residuals etc, thus checking if there are outlier issues:
 
-1. Check the residuals, using `autoplot(model_x)`
 ```{r}
 library(ggfortify)
 
@@ -680,10 +668,7 @@ car::vif(model4)
 car::vif(model5)
 ```
 
-
-
-1. Create a summary table, using `huxtable` (https://mfa2022.netlify.app/example/modelling_side_by_side_tables/) that shows which models you worked on, which predictors are significant, the adjusted $R^2$, and the Residual Standard Error.
-
+We have presented the data below in a summary table:
 
 ```{r}
 # Compare models using 'huxtable'
@@ -712,6 +697,8 @@ updated_four_nights_for_two_listings <- four_nights_for_two_listings %>%
 head(updated_four_nights_for_two_listings)
 
 ```
+
+Using our updated model, we are able to plot the following:
 
 ```{r}
 # Use broom::augment(). It's  essentially the same thing as predict(), 
@@ -754,13 +741,63 @@ ggplot(model_predictions_antilog, aes(x = number_of_reviews,
   NULL
 
 ```
+And applying the confidence interval function on model5 to view how it rates the different factors included in the model:
 
+```{r}
+#95% confidence intervals for factors 
 
+confint(model5)
+
+```
+
+We then need to remove the log factor and apply this model to the data set:
+
+```{r} 
+# Find fit, upper and lower bound for price_4_nights
+
+predicted_log_total_cost <- as.data.frame(predict(model5, 
+                                newdata = updated_four_nights_for_two_listings, 
+                                interval = 'confidence'))
+
+predicted_exp_total_cost <- predicted_log_total_cost %>% 
+  mutate(fit_after_exp = exp(fit),
+         lwr_after_exp = exp(lwr),
+         upr_after_exp = exp(upr))
+
+head(predicted_exp_total_cost)
+
+```
+We can now predict the total cost of 4 nights in Istanbul by pulling the fit column from the above data frame and applying the standard summary statistics to it, giving us a 95% confidence interval for the cost of the trip:
+
+```{r}
+
+# Create new frame with just the fitted values
+final_predictions <- predicted_exp_total_cost %>%
+  pull(fit_after_exp)
+
+# Can now run confidence interval script on this data set
+# Standard "summarise" was not working so am making a dataframe manually
+
+mean_price = mean(final_predictions)
+sd_price = sd(final_predictions)
+count = length(final_predictions)
+t_critical = qt(0.975, 413)
+se_price = sd_price/sqrt(count)
+margin_of_error = t_critical * se_price
+price_low = mean_price - margin_of_error
+price_high = mean_price + margin_of_error
+
+istanbul_airbnb_price <- data.frame(mean_price, sd_price, se_price, price_low,
+                                    price_high)
+
+istanbul_airbnb_price
+
+```
 # Conclusions
 
-1) Maybe Istanbul is weird?
-2) Other factors affecting price
-3) Strong adjiusted $R^2$ in the end
+Istanbul shows a unique set of characteristics in that the regression models show price dropping as ratings etc increase; perhaps there are other factors affecting price that have not been accounted for. Factors such as the review statistics (cleanliness, check in etc) were left out due to the high colinearity exhibited with other variables of interest, and thus could not be included in the model.
+
+Ultimately, employing a combination of model2 and model3, and using logarithmic price, we were able to achieve and adjusted $R^2$ of 0.286, indicating that our model does account for a good amount of the variability in price between AirBnBs.
 
 
 # Acknowledgements
