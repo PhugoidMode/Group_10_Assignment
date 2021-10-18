@@ -20,6 +20,14 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE,
   comment = NA, dpi = 300)
 ```
 
+# Executive Summary/Abstract
+
+- We analysed rent prices for Airbnb flats in Istanbul
+- Originally, we had 74 explanatory variables, but we later narrowed the number down to 17 due to logical assumptions and other factors described in more detail later
+- The selected variables had limited relationship with prices per night as shown by relatively low correlation
+- The model that produced the has the highest predictability of prices per night includes the type of property, number of reviews, review scores rating, room type and neighborhood
+- Despite that, the reliability of the model is not high, so further analysis is required to determine the best variables to predict the price per night in Istanbul
+
 
 ```{r load-libraries, echo=FALSE}
 library(tidyverse) # the usual stuff: dplyr, readr, and other goodies
