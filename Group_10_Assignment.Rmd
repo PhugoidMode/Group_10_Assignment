@@ -630,8 +630,14 @@ mosaic::msummary(model4)
 Create a model5 which combines elements of 2 and 3:
 
 ```{r}
-model5<- lm(log(price_4_nights) ~ prop_type_simplified + number_of_reviews + 
-               review_scores_rating + neighbourhood_simplified + room_type, 
+model5<- lm(log(price_4_nights) ~ prop_type_simplified 
+            + number_of_reviews
+            + review_scores_rating 
+            + neighbourhood_simplified 
+            + availability_30
+            + room_type 
+  
+          , 
              data = four_nights_for_two_listings)
 
 mosaic::msummary(model5)
