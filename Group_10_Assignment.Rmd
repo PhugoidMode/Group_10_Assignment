@@ -1,7 +1,7 @@
 ---
 title: "Final Group Project: AirBnB analytics"
 date: "12 Oct 2021"
-author: "Reading Time: About 8 minutes"
+author: "Pinar Katircioglu, Huilun Hu, Rishabh Sinha, Niko Chikvashvili, Hee Wen Loo, Jonathan Antor, Will Chen"
 output:
   html_document:
     highlight: zenburn
@@ -22,11 +22,11 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE,
 
 # Executive Summary/Abstract
 
-- We analysed rent prices for Airbnb flats in Istanbul
+- We analysed rent prices for AirBnb flats in Istanbul
 - Originally, we had 74 explanatory variables, but we later narrowed the number down to 17 due to logical assumptions and other factors described in more detail later
 - The selected variables had limited relationship with prices per night as shown by relatively low correlation
-- The model that produced the has the highest predictability of prices per night includes the type of property, number of reviews, review scores rating, room type and neighborhood
-- Despite that, the reliability of the model is not high, so further analysis is required to determine the best variables to predict the price per night in Istanbul
+- The model that produced the has the highest predictability of prices per night includes the type of property, number of reviews, review scores rating, room type, availability over the next 30 days, and neighborhood
+- Having used logarthmic price to carry out the regression, we ultimately achieved amn adjusted $R^2$ of 0.286, and predict (with a 95% confidence level) that the price of a 4 night stay in Istanbul will be 
 
 
 ```{r load-libraries, echo=FALSE}
@@ -429,7 +429,6 @@ ggplot(new_listings, aes(x= host_identity_verified  )) +
 new_listings %>% 
   count(host_identity_verified) 
 ```
-Does each scatterplot support a linear relationship between variables? Do any of the correlations appear to be conditional on the value of a categorical variable?
 
 ##Correlations
 
@@ -439,7 +438,7 @@ Moreover, the correlation between the availability of 30, 60, 90, and 365 days i
 
 Interestingly, we see that the number of reviews has relatively low correlation with other numeric variables whşch is around 10% (except number of reviews per month).
 
-The strongest correlation with price is number of accommodates which is 0,244.
+The strongest correlation with price is number of accommodates which is 0.244.
 
 ```{r fig.width = 20, fig.height = 20}
 correlation_data <- new_listings %>% 
@@ -449,9 +448,7 @@ correlation_data
 ```
 # Mapping 
 
-Visualisations of feature distributions and their relations are key to understanding a data set, and they can open up new lines of exploration. While we do not have time to go into all the wonderful geospatial visualisations one can do with R, you can use the following code to start with a map of your city, and overlay all AirBnB coordinates to get an overview of the spatial distribution of AirBnB rentals. For this visualisation we use the `leaflet` package, which includes a variety of tools for interactive maps, so you can easily zoom in-out, click on a point to get the actual AirBnB listing for that specific point, etc.
-
-The following code, having downloaded a dataframe `listings` with all AirbnB listings in Milan, will plot on the map all AirBnBs where `minimum_nights` is less than equal to four (4). You could learn more about `leaflet`, by following [the relevant Datacamp course on mapping with leaflet](https://www.datacamp.com/courses/interactive-maps-with-leaflet-in-r)
+We can employ mapping packages to create interactive maps overlayed with information on suitable AirBnBs around Istanbul.
 
 The below map gives an overview of the spatial distribution of AirBnb in Istanbul, with minimum nights less than 4. 
 
@@ -474,7 +471,7 @@ leaflet(data = filter(listings, minimum_nights <= 4)) %>%
 
 For the target variable $Y$, we will use the cost for two people to stay at an Airbnb location for four (4) nights. 
 
-Create a new variable called `price_4_nights` that uses `price`, and `accomodates` to calculate the total cost for two people to stay at the Airbnb property for 4 nights. This is the variable $Y$ we want to explain.
+We will create a variable called `price_4_nights` that uses `price`, and `accomodates` to calculate the total cost for two people to stay at the Airbnb property for 4 nights. This is the variable $Y$ we want to explain.
 
 
 
@@ -485,7 +482,8 @@ four_nights_for_two_listings <- new_listings %>%
 skim(four_nights_for_two_listings)
 ```
 
-Use histograms or density plots to examine the distributions of `price_4_nights` and `log(price_4_nights)`. Which variable should you use for the regression model? Why?
+Analysis of the following histograms shows why we should use the $log()$ function to carry out the regression, as it provides a less sharp density function.
+
 ```{r}
 #Density Plot for price_4_nights
 ggplot(four_nights_for_two_listings, aes(x= price_4_nights)) +
@@ -616,7 +614,7 @@ model4 <- lm(log(price_4_nights) ~ prop_type_simplified + number_of_reviews +
 mosaic::msummary(model4)
 ```
 
-Create a model5 which combines elements of 2 and 3:
+Create a model5 which combines elements of 2 and 3, and availability:
 
 ```{r}
 model5<- lm(log(price_4_nights) ~ prop_type_simplified 
@@ -683,8 +681,7 @@ huxreg(model1, model2, model3, model4, model5,
   set_caption('Comparison of models')
 ```
 
-1. Finally, you must use the best model you came up with for prediction. Suppose you are planning to visit the city you have been assigned to over reading week, and you want to stay in an Airbnb. Find Airbnb's in your destination city that are apartments with a private room, have at least 10 reviews, and an average rating of at least 90. Use your best model to predict the total cost to stay at this Airbnb for 4 nights. Include the appropriate 95% interval with your prediction. Report the point prediction and interval in terms of `price_4_nights`. 
-  - if you used a log(price_4_nights) model, make sure you anti-log to convert the value in $. You can read more about [hot to interpret a regression model when some variables are log transformed here](https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/)
+Finally, we will use the our model (model5) for predicting the cost of a 4 night stay in Istanbul. We will consider only apartments with a private room, with at least 10 reviews, and an average rating of at least 90, and will include the appropriate 95% interval with our prediction. As we used logarithmic price for the regression part, we will need to transform it back to price to continue, but first we will filter out suitable apartments:
 
 ```{r}
 # Filter a private room, at least 10 reviews, average rating of at least 90% of 
@@ -793,6 +790,8 @@ istanbul_airbnb_price <- data.frame(mean_price, sd_price, se_price, price_low,
 istanbul_airbnb_price
 
 ```
+Hence, we predict with a 95% confidence level that the cost of the stay will be within the range of \$1009.68, and \$1078.09, and with a mean value of \$1043.88.
+
 # Conclusions
 
 Istanbul shows a unique set of characteristics in that the regression models show price dropping as ratings etc increase; perhaps there are other factors affecting price that have not been accounted for. Factors such as the review statistics (cleanliness, check in etc) were left out due to the high colinearity exhibited with other variables of interest, and thus could not be included in the model.
@@ -802,4 +801,4 @@ Ultimately, employing a combination of model2 and model3, and using logarithmic 
 
 # Acknowledgements
 
-- The data for this project is from [insideairbnb.com](insideairbnb.com)
+The data for this project is from [insideairbnb.com](insideairbnb.com)
